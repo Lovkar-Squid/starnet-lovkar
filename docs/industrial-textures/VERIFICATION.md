@@ -37,6 +37,23 @@ live workstation heat/progress, context recovery and bounded cache behavior.
 All touched JavaScript passed `node --check`; `git diff --check` was clean.
 The generated website mirror matched all 4,592 frontend files plus two embed files.
 
+## Full gate
+
+Final source `5f80da1fb`: **771 / 771 PASS**, process exit 0. The canonical
+`test:fast:raw` manifest ran in its normal sequential order with a 30-minute outer
+guard. No tests or assertions were removed or filtered.
+
+```text
+node scripts/timeout.mjs --label industrial-final-fast --timeout=1800000 -- npm run test:fast:raw
+run-fast-tests: OK — 771 step(s) green
+```
+
+An earlier `npm run test:fast` passed 771/771 before the dense visual plate was
+added. The first final-source attempt exceeded that command's 15-minute guard
+without an assertion failure; the longer full rerun above completed successfully.
+The final live reload reported `industrial`, detail scale `3`, and an empty browser
+error log. [Live screenshot](live-preview.jpg).
+
 ## Scope
 
 No provider credentials were copied into this preview, and no model reply was

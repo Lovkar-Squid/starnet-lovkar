@@ -28,3 +28,5 @@ editing and backend are running; model replies require signing in or configuring
 a provider in this preview. The installed desktop application is a separate build.
 
 Verification receipts are in [VERIFICATION.md](VERIFICATION.md).
+
+![Running industrial station](live-preview.jpg)
