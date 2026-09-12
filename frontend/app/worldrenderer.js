@@ -107,6 +107,8 @@ const WorldRenderer = (() => {
         geometry = frame.geo; baked = frame.cache; rebuilds++;
         if (canLight()) {
           if (!lighting) lighting = WorldLight.create({ quality: 'high', wallAmbient: .16, fixtureTint: .16, propTint: .48 });
+          if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.enabled() && lighting.configure)
+            lighting.configure(IndustrialTextures.lighting);
           lighting.setGeometry(geometry, { width: baked.W, height: baked.H,
             tileSize: geometry.TILE, interiorPath: baked.interiorPath, interiorMask: baked.interiorCv, surfaceMask: baked.baseCv,
             surfaceChunks: baked.chunks });

@@ -49,5 +49,32 @@ async function load(search, broken = false) {
   assert.equal(missing.enabled(), false); assert.equal(missing.status().failed[0], 'wall');
   const normal = await load(''); assert.equal(normal.enabled(), false);
   assert.equal(normal.detailContext(raw), raw);
-  console.log(JSON.stringify({ assets: pack.status(), alphaSamples: samples, worldAnchor: 'PASS', missingAssetFallback: 'PASS', normalRenderer: 'PASS' }));
+  // Verify real prop integration: every facing uses its own art, occupied chair
+  // rims match those pixels exactly, and the desk preserves its image aspect.
+  const propContext = { module: { exports: {} }, IndustrialTextures: pack,
+    document: { createElement: () => createCanvas(1, 1) }, console,
+    U: { hash: s => String(s).split('').reduce((h,c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0, shade: c => c } };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'frontend/app/propsprites.js'), 'utf8'), propContext);
+  const props = propContext.module.exports, facings = new Set();
+  for (let r = 0; r < 4; r++) for (let m = 0; m < 2; m++) {
+    const full = createCanvas(36, 40), front = createCanvas(36, 40);
+    const f = { t: 'chair', x: 1, y: 1, w: 1, h: 1, r, m: !!m };
+    props.setCtx(full.getContext('2d')); props.draw(f, false);
+    props.setCtx(front.getContext('2d')); props.drawSeatFront(f);
+    const pixels = c => c.getContext('2d').getImageData(12, 18, 12, 3).data;
+    assert.deepEqual(pixels(full), pixels(front), 'occupied rim agrees with facing ' + r + '/' + m);
+    facings.add(Buffer.from(full.getContext('2d').getImageData(0, 0, 36, 40).data).toString('base64'));
+    assert.equal(front.getContext('2d').getImageData(0, 0, 36, 18).data.some(v => v), false, 'front pass leaves head clear');
+    assert.equal(full.getContext('2d').getImageData(0, 24, 36, 16).data.some(v => v), false, 'chair grounded within its tile');
+  }
+  assert.ok(facings.size >= 4, 'four distinct chair views');
+  const calls = [], spy = { save() {}, restore() {}, drawImage(...args) { calls.push(args); } };
+  pack.workstation(spy, 12, 12, 24, 12);
+  const [im, dx, dy, dw, dh] = calls[0];
+  assert.ok(Math.abs(dw / dh - im.width / im.height) < 1e-8, 'no workstation stretching');
+  assert.equal(dy + dh, 24, 'desk contacts its original floor line');
+  assert.ok(dx >= 11 && dx + dw <= 37, 'desk fits its existing footprint');
+  console.log(JSON.stringify({ assets: pack.status(), alphaSamples: samples, chairOrientations: 8,
+    seatFrontPixelMatch: 'PASS', workstationAspect: 'PASS', floorContact: 'PASS',
+    worldAnchor: 'PASS', missingAssetFallback: 'PASS', normalRenderer: 'PASS' }));
 })().catch(err => { console.error(err); process.exitCode = 1; });

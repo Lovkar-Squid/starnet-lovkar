@@ -8,12 +8,15 @@ const IndustrialTextures = (() => {
   let requested = false;
   try { requested = new URLSearchParams(location.search).get('textures') === 'industrial'; } catch (_) {}
   const images = {}, failed = [];
+  // Exposed to the existing CRT lab for a live, reproducible material review.
+  const lighting = { fixtureTint: .04 };
   const plates = new WeakMap();
   let loaded = false;
-  const names = ['floor', 'wall', 'shell', 'workstation'];
+  const names = ['floor', 'wall', 'shell', 'workstation', 'chair-s', 'chair-e', 'chair-n'];
   // The references are already lit pictures. These measured albedo gains keep
   // the existing light simulation from applying a second exposure to the art.
-  const gain = { floor: 1.25, wall: 2.4, shell: 2.05, workstation: 1.8 };
+  const gain = { floor: 1.25, wall: 2.4, shell: 2.05, workstation: 1.5,
+    'chair-s': 1.8, 'chair-e': 1.8, 'chair-n': 1.8 };
   const ready = requested && typeof Image !== 'undefined' ? Promise.all(names.map(name => new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -129,12 +132,23 @@ const IndustrialTextures = (() => {
   }
   function workstation(ctx, x, y, w, h) {
     if (!enabled()) return false;
-    const im = images.workstation, dw = w + 2, dh = h + 10;
+    // Fit without stretching: footprint controls width, ground contact controls
+    // the bottom. The compact operator console has its own correctly sized art.
+    const im = images.workstation, scale = Math.min((w + 2) / im.width, (h + 14) / im.height);
+    const dw = im.width * scale, dh = im.height * scale;
     ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(im, x - 1, y + h - dh, dw, dh);
+    ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
     ctx.restore(); return true;
   }
-  return Object.freeze({ ready, enabled, detailContext, drawBase, floor, wall, shell, shellPlate, workstation,
+  function chair(ctx, x, y, w, h, facing = 's') {
+    if (!enabled()) return false;
+    const im = images['chair-' + facing], scale = Math.min(w / im.width, (h + 4) / im.height);
+    const dw = im.width * scale, dh = im.height * scale;
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
+    ctx.restore(); return true;
+  }
+  return Object.freeze({ ready, enabled, lighting, detailContext, drawBase, floor, wall, shell, shellPlate, workstation, chair,
     status: () => ({ requested, loaded, failed: failed.slice(), assets: Object.keys(images) }) });
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = IndustrialTextures;

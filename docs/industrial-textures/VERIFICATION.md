@@ -37,7 +37,7 @@ live workstation heat/progress, context recovery and bounded cache behavior.
 All touched JavaScript passed `node --check`; `git diff --check` was clean.
 The generated website mirror matched all 4,592 frontend files plus two embed files.
 
-## Full gate
+## Historical first-pass gate
 
 Final source `5f80da1fb`: **771 / 771 PASS**, process exit 0. The canonical
 `test:fast:raw` manifest ran in its normal sequential order with a 30-minute outer
@@ -62,3 +62,60 @@ merge was performed. The material edition pins surface painting to the supplied
 reference style; the existing material/color picker does not restyle that edition.
 Other prop families, character artwork, and high-resolution side/corner sampling
 are outside this first pass.
+
+## Furniture revision — September 12, current receipt
+
+Done for this revision means: the live preview displays the compact workstation
+without stretching, office chairs use the reference materials in their authored
+facings, and placed chairs survive saving and restarting the local server.
+
+Observed in the live app:
+
+- New compact single-monitor console, matching automatic workstation chair,
+  and two north-facing placeable office chairs at the side desks.
+- Refit catalogue showed the new chair, then west and north facings through TURN.
+- Refit changed from 3 to 5 objects and reported `Station layout saved`.
+- Saved props remained at desk coordinates (10,2), (4,2), (16,2), and chair
+  coordinates (4,3), (17,3), both chairs with rotation 2.
+- Restarted only this worktree's preview sidecar through `dev/seed.js --keep`.
+  Health returned `status: ok`; browser reload retained the furniture.
+- Browser reported `texturePack: industrial`, `textureResolution: 3`, errors `[]`.
+- CRT lab readout recorded `industrial.fixtureTint: 0.04`; the active compositor
+  was compared live with its previous 0.16 setting. Legacy lighting controls do
+  not control that compositor, so their trial values were not copied into defaults.
+
+Native canvas receipt:
+
+```text
+alphaSamples: 6400
+chairOrientations: 8
+seatFrontPixelMatch: PASS
+workstationAspect: PASS
+floorContact: PASS
+worldAnchor: PASS
+missingAssetFallback: PASS
+normalRenderer: PASS
+```
+
+All changed JavaScript passed syntax checks. The website generator reported a
+clean mirror of 4,595 frontend files plus two preserved embed files.
+
+Focused canonical test runner: **28 steps green**, exit 0, covering prop light
+response, rendering, mounting, chair/seat behavior, refit footprints, station
+baking, world lighting, and website synchronization. Log:
+`dev/industrial-textures/furniture-focused.log`.
+
+The full 771-step gate is **not green on this committed feature branch**. It
+passed the first 286 steps and stopped at step 287,
+`test/qa-product-perfect-claims.test.js`, with 10 assertions failing because the
+committed frontend differs from the release authority's locked source hashes and
+path set. The new industrial module is also absent from that approved path set.
+The audit explicitly reports `release surface path-set changed; re-audit required`.
+No release ledger was rewritten and no assertions were bypassed. The historical
+771-pass working-tree run above is not evidence of a passing current-branch gate.
+Full-run log: `dev/industrial-textures/test-fast-furniture.log`.
+
+This revision remains an isolated, running visual preview. No merge, installed
+application update, release claim, or provider/model run was performed.
+
+![Furniture revision in the running station](live-furniture.jpg)

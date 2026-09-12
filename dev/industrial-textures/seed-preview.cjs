@@ -14,10 +14,12 @@ station.rooms.r1.rects = [{ x1: 0, y1: 0, x2: 21, y2: 17 }];
 station.props = [
   { id: 'p1', t: 'desk', x: 10, y: 2, w: 2, h: 1, block: true, agentId: 'agent' },
   { id: 'p2', t: 'desk2', x: 4, y: 2, w: 2, h: 1, block: true },
-  { id: 'p3', t: 'desk2', x: 16, y: 2, w: 2, h: 1, block: true }
+  { id: 'p3', t: 'desk2', x: 16, y: 2, w: 2, h: 1, block: true },
+  { id: 'p4', t: 'chair', x: 4, y: 3, w: 1, h: 1, r: 2, block: true },
+  { id: 'p5', t: 'chair', x: 17, y: 3, w: 1, h: 1, r: 2, block: true }
 ];
 station._nid = 10;
 save.doc.station = station;
 save.updatedAt = save.savedAt = save.doc.updatedAt = Date.now();
 fs.writeFileSync(target, JSON.stringify(save, null, 2));
-console.log('Bare station prepared with three workstations.');
+console.log('Bare station prepared with three workstations and matching prop chairs.');
