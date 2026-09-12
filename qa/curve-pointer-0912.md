@@ -26,6 +26,6 @@ A separate visible in-app browser used normal running simulation and the default
 
 Registered fast suite test/world-agent-click.test.js: 40 assertions pass. Covers independent forward-projection points at center, edges and corners, both CRT presets, curve disabled, no-scan, CSS/backing-store scaling, nonzero pan and zoom, black corner rejection, wheel conversion wiring, hero/specialist ID routing, and exact website mirror equality.
 
-Full fast gate: pending at time of initial receipt; final result recorded below.
+Full fast gate: npm run test:fast PASS — 771 step(s) green. Local log: .proof/fast-final.log. The first run stopped at the expected world.js release-surface hash mismatch; cabf79daf refreshed only that file hash/length and its source commit, with claim verdicts unchanged. The focused claims gate then passed 64 assertions and the complete rerun passed.
 
 Not verified: rebuilt installed desktop, owner recovery, every clickable prop type, CPU fallback live, physical high-DPI hardware. These are separate from the demonstrated source repair.
