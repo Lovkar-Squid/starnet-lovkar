@@ -6141,7 +6141,7 @@ const World = (() => {
     drawDockFlashes(now); // LONE-BAY dock arrival: the bay visibly catches work when no belt line exists
     drawPinFlourish(now); // G4.2: the amber pin-burst at the board the instant a proposal is pinned
     if (agent && !agent.unplaced) drawBubble(now);
-    for (const b of crew) drawBubble(now, b);   // crew speech bubbles (e.g. "received: …" when work routes to them)
+    for (const b of crew) drawBubble(now, b);   // crew speech and useful status messages
     if (hoverAgent && !hoverAgent.unplaced) drawNameplate(now, hoverAgent);
     // FLOOR-STATS OVERLAY REMOVED (2026-07-09 decision): the YIELD/RUNS/CACHE/SLAG/THRU/DWELL box no
     // longer floats over the world sim. The FloorStats engine stays live (event-fed) so any panel or
@@ -7116,7 +7116,7 @@ const World = (() => {
     ctx.restore();
   }
 
-  /* ---------- the SPEECH BUBBLE: what a body is saying right now (a routed "received: …" beat, a muttered
+  /* ---------- the SPEECH BUBBLE: what a body is saying right now (a muttered
      aside, an error line, a LEVEL tick). Rendered in screen-space with no
      smoothing so VT323 stays crisp: quiet dark glass, a fine neutral frame,
      a small suit-colour accent, restrained phosphor bloom, and a small tail
@@ -7145,7 +7145,7 @@ const World = (() => {
     // Wrap to <=3 lines; ellipsize overflow, including unbroken identifiers.
     const fontSz = 16, lh = 18, padX = 12, padY = 10, tailW = 4, tailH = 5;
     const raw = String(s.text);
-    const tag = raw.match(/^(received|working|error|blocked):\s*/i);
+    const tag = raw.match(/^(working|error|blocked):\s*/i);
     const label = tag ? tag[1].toUpperCase() : '';
     const labelH = label ? 17 : 0;
     ctx.font = fontSz + 'px ' + PLATE_FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
@@ -8157,7 +8157,7 @@ const World = (() => {
     }
   }
   /* LONE-BAY DOCK ARRIVAL: with no intake/belt route, work addressed to an agent still lands VISIBLY at its
-     bay — a dock flash + the same "received:" beat the belt delivery rings. This is what makes a single
+     bay through a dock flash and wake reaction. This is what makes a single
      assigned BAY a complete, working build (belts become the upgrade for watching work travel, never a
      prerequisite). Purely visual: the sidecar already ran the work either way (belt-is-never-a-gate law). */
   const dockFlashes = new Map();   // bay propId -> flash t0 (drawn by drawDockFlashes, ~1.1s decay)
@@ -8170,8 +8170,8 @@ const World = (() => {
     if (!dock) return;                                             // no (matching) bay → nothing to show (today's behavior)
     dockFlashes.set(dock.propId, fnow);
     const body = bodyForAgent(aid);
-    if (body && body !== agent) { sayAt(body, 'received: ' + (p.preview || 'message')); body.wakeAt = fnow; if (!(body.workUntil > fnow + 5000)) body.workUntil = fnow + 4000; }
-    else if (agent && !agent.unplaced) { say('received: ' + (p.preview || 'message')); wakeIn(); }
+    if (body && body !== agent) { body.wakeAt = fnow; if (!(body.workUntil > fnow + 5000)) body.workUntil = fnow + 4000; }
+    else if (agent && !agent.unplaced) { wakeIn(); }
   }
   // the dock catching a delivery: a bright ring + rim flash over the bay, ~1.1s, additive (with the glows)
   function drawDockFlashes(now) {
@@ -8665,15 +8665,15 @@ const World = (() => {
       return;
     }
     // INBOUND: prefer the agentId the box CARRIES — cron/channel address it explicitly to the run's agent, so the
-    // "received" beat lands on exactly the body that runs (server-authoritative; no re-derivation drift). Fall
+    // wake reaction lands on exactly the body that runs (server-authoritative; no re-derivation drift). Fall
     // back to the landing tile, then resolveTarget(tag), for an unaddressed box. The work POSE itself is owned by
-    // the run-lifecycle binding above, so here we only ring the "received: <instruction>" beat and NEVER cut short
+    // the run-lifecycle binding above, so delivery only wakes the body and NEVER cuts short
     // an already-working body (an active run's glow must outlast this 4s pulse).
     const landed = (routingPlan && routingPlan.bayTileToAgent) ? routingPlan.bayTileToAgent[bx.x + ',' + bx.y] : null;
     const aid = p.agentId || landed || ((typeof Pipeline !== 'undefined' && routingPlan) ? Pipeline.resolveTarget(routingPlan, { tag: p.tag }) : null);
     const body = bodyForAgent(aid);
-    if (body && body !== agent) { sayAt(body, 'received: ' + (p.preview || 'message')); body.wakeAt = fnow; if (!(body.workUntil > fnow + 5000)) body.workUntil = fnow + 4000; }
-    else { say('received: ' + (p.preview || 'message')); wakeIn(); }   // the hero (or an unrouted box) — today's behaviour
+    if (body && body !== agent) { body.wakeAt = fnow; if (!(body.workUntil > fnow + 5000)) body.workUntil = fnow + 4000; }
+    else { wakeIn(); }   // the hero (or an unrouted box)
   }
   /* ---------- the CAM-HUD ACTIVITY TICKER (stage narration) ----------
      A single diegetic security-camera line at the bottom of the .cam-hud overlay that names WHAT the station
