@@ -1274,7 +1274,9 @@ const World = (() => {
 
     cv.addEventListener('wheel', ev => {
       ev.preventDefault();
-      const c = toCanvas(ev), wx = (c.x - panX) / scale, wy = (c.y - panY) / scale;
+      const c = uncurvePoint(toCanvas(ev));
+      if (!c) return;
+      const wx = (c.x - panX) / scale, wy = (c.y - panY) / scale;
       scale = clampz(scale * Math.exp(-ev.deltaY * 0.0015), MINZ, MAXZ);
       panX = c.x - wx * scale; panY = c.y - wy * scale;
       camLerp = null; camLock = null; camUserAt = performance.now();   // the user is driving the camera — stop any focus ease, release any follow-lock, reset the cinecam idle clock
@@ -1296,6 +1298,7 @@ const World = (() => {
         cv.style.cursor = 'grabbing'; return;
       }
       const wp = toWorld(ev);
+      if (!wp) { hoverAgent = null; hoverBeltTile = null; hoverOutbox = null; cv.style.cursor = 'default'; return; }
       const nowMs = performance.now();
       // D4: stamp cursorMoveT only on a REAL displacement (> ~half a tile) — a parked-but-jittering cursor is
       // presence (feeds gaze), not "moving" (which lures THE CHASE). Compared against the PREVIOUS lastCursor.
@@ -1317,6 +1320,7 @@ const World = (() => {
       const wasDrag = drag && drag.moved; drag = null; cv.style.cursor = 'default';
       if (wasDrag) return;
       const wp = toWorld(ev);
+      if (!wp) return;
       // Every body that raises the agent hover nameplate is also a real dossier target. Pass its stable
       // roster id through the click seam so a specialist opens ITS dossier instead of falling through or
       // reusing the Overseer's index. The greeting remains hero-only: crew clicks open a panel, not a hero line.
@@ -1602,7 +1606,35 @@ const World = (() => {
     const r = cv.getBoundingClientRect();
     return { x: (ev.clientX - r.left) * (cv.width / r.width), y: (ev.clientY - r.top) * (cv.height / r.height) };
   }
-  function toWorld(ev) { const c = toCanvas(ev); return { x: (c.x - panX) / scale, y: (c.y - panY) / scale }; }
+  // Output pixel -> pre-CRT scene pixel. Match the renderer's six-step inverse,
+  // including overscan, BEFORE undoing the camera. Drag deltas remain screen-space.
+  function uncurvePoint(c) {
+    if (CRT.curve <= 0 || document.body.classList.contains('no-scan')) return c;
+    const hw = cv.width / 2, hh = cv.height / 2, over = overAmt(), k = Math.max(0, +CRT.curve || 0);
+    const nx = (c.x - hw) / hw / over, ny = (c.y - hh) / hh / over;
+    const ro = Math.hypot(nx, ny);
+    let rs = ro;
+    if (ro > 1e-6) for (let it = 0; it < 6; it++) {
+      const g = rs * (1 - k * rs * rs) - ro, dg = 1 - 3 * k * rs * rs;
+      if (Math.abs(dg) < 1e-9) break;
+      rs -= g / dg;
+    }
+    const s = ro > 1e-6 ? rs / ro : 1;
+    const x = hw + nx * s * hw, y = hh + ny * s * hh;
+    // The shader paints black outside the source image: that glass cannot hit a body.
+    return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x < cv.width && y >= 0 && y < cv.height ? { x, y } : null;
+  }
+  function curvePoint(c) {
+    if (CRT.curve <= 0 || document.body.classList.contains('no-scan')) return c;
+    const hw = cv.width / 2, hh = cv.height / 2;
+    const nx = (c.x - hw) / hw, ny = (c.y - hh) / hh;
+    const f = (1 - Math.max(0, +CRT.curve || 0) * (nx * nx + ny * ny)) * overAmt();
+    return { x: hw + nx * f * hw, y: hh + ny * f * hh };
+  }
+  function toWorld(ev) {
+    const c = uncurvePoint(toCanvas(ev));
+    return c ? { x: (c.x - panX) / scale, y: (c.y - panY) / scale } : null;
+  }
   // the nearest PLACED body under the cursor — the hero (Overseer) OR any crew/summoned body —
   // returned as the body itself (so the hover nameplate can tag whichever one), else null.
   function agentHit(wp) {
@@ -9420,10 +9452,11 @@ const World = (() => {
     if (!p || !cv) return null;
     const wx = (p.x + (p.w || 1) / 2) * T, wy = (p.y + (p.h || 1) / 2) * T;
     const r = cv.getBoundingClientRect();
+    const c = curvePoint({ x: wx * scale + panX, y: wy * scale + panY });
     return {
       id: p.id,
-      clientX: r.left + ((wx * scale + panX) * (r.width / cv.width)),
-      clientY: r.top + ((wy * scale + panY) * (r.height / cv.height))
+      clientX: r.left + c.x * (r.width / cv.width),
+      clientY: r.top + c.y * (r.height / cv.height)
     };
   };
   // E1 verification: report the live link predicate, and force the real chanES closed (a genuine dropped socket)
@@ -9811,9 +9844,10 @@ const World = (() => {
       if (!p) return null;
       const r = cv.getBoundingClientRect();
       const kx = r.width / cv.width, ky = r.height / cv.height;
-      const toScr = (wx, wy) => ({ x: r.left + (wx * scale + panX) * kx, y: r.top + (wy * scale + panY) * ky });
+      const toScr = (wx, wy) => { const c = curvePoint({ x: wx * scale + panX, y: wy * scale + panY }); return { x: r.left + c.x * kx, y: r.top + c.y * ky }; };
       const a = toScr(p.x * T, p.y * T), b = toScr((p.x + (p.w || 1)) * T, (p.y + (p.h || 1)) * T);
-      return { left: a.x, top: a.y, right: b.x, bottom: b.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      const c = toScr((p.x + (p.w || 1) / 2) * T, (p.y + (p.h || 1) / 2) * T);
+      return { left: a.x, top: a.y, right: b.x, bottom: b.y, cx: c.x, cy: c.y };
     },
     heroCaps: (agentId) => {
       if (!station) return [];
