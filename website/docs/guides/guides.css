@@ -2,7 +2,7 @@
    Rule for this area: the SCHEMATIC carries the explanation, the words are the caption.
    Belts actually march and crates actually ride, so the page demonstrates the mechanic
    instead of describing it. Everything degrades to a still frame under reduced-motion. */
-@import url('../docs.css?v=20260912');
+@import url('../docs.css?v=20260912-glass');
 
 .docs-shell{ max-width:1240px; }
 /* Guides are schematic-heavy: the article column needs its width. Below 1400px the on-page TOC
@@ -344,13 +344,14 @@ a.quest:hover .q-title{ text-shadow:0 0 12px rgba(255,157,47,.45); }
 .gc .gc-p{ display:block; font-size:14px; letter-spacing:1.5px; color:var(--amber-d); margin:1px 0 6px; }
 .gc p{ margin:0; font-size:15.5px; line-height:1.5; color:var(--ink-d); }
 
-/* Article typography follows the handbook; schematic labels keep their authored face. */
-.fm-hero{border-radius:6px;padding:24px;background:#171a14}
-.fm-hero .fh-kicker{font:10px/1.5 ui-monospace,monospace;letter-spacing:.1em;color:#a4b291;margin-bottom:14px}
-.fm-hero .fh-sub{font:14px/1.7 system-ui,sans-serif;letter-spacing:0;color:var(--ink-d)}
-.fm-hero .fh-cap{font:11px/1.6 system-ui,sans-serif;letter-spacing:0;color:#a3af95}
-.buildsteps>li{gap:22px}.buildsteps p,.buildsteps li,.gc p{font-size:14px;line-height:1.75}
-.gc .gc-n{font-size:15px;font-weight:600;letter-spacing:0}.gc .gc-p{font:10px/1.7 ui-monospace,monospace}
+/* Guides share the station glass; schematic labels retain their authored scale. */
+.fm-hero{border-radius:12px;padding:24px;background:var(--menu-glass);box-shadow:var(--glass-rim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.fm-hero .fh-kicker{font:16px/1.4 'VT323',monospace;letter-spacing:1px;color:var(--amber);margin-bottom:14px}
+.fm-hero .fh-sub{font:20px/1.5 'VT323',monospace;letter-spacing:0;color:var(--ink-d)}
+.fm-hero .fh-cap{font:17px/1.5 'VT323',monospace;letter-spacing:0;color:var(--amber-d)}
+.buildsteps>li{gap:22px}.buildsteps p,.buildsteps li,.gc p{font-size:20px;line-height:1.55}
+.gc{border-radius:12px;background:var(--menu-glass);box-shadow:var(--glass-rim);overflow:hidden}
+.gc .gc-n{font-size:24px;font-weight:400;letter-spacing:.4px}.gc .gc-p{font:16px/1.5 'VT323',monospace}
 .docs-overview .docs-shell{max-width:1380px}
 .fm-hero .d-label text{font-size:13px;letter-spacing:.5px}
 @media(max-width:1000px){.buildsteps>li{grid-template-columns:minmax(0,1fr)}}

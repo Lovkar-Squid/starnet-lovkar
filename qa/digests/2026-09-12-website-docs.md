@@ -70,3 +70,34 @@ were closed and viewport overrides reset.
 
 No integration merge or publication was performed. This is website behavior verification;
 it does not certify every pre-existing documentation claim or the installed desktop product.
+
+## Visual correction — StarNet glass (2026-09-12)
+
+The user rejected the initial sans-serif / olive documentation styling and requested the
+StarNet identity with the current app glass treatment. This revision supersedes that visual
+direction while retaining the six topic groups, existing URLs, search and reading layout.
+
+- Restored self-hosted VT323 for headings, article text, navigation and metadata; code and
+  keyboard combinations retain a conventional monospace face. Restored amber phosphor
+  colors and the existing CRT layers with restrained static opacity for reading.
+- Reused the production `frontend/css/menu-glass.css` 125-degree translucent gradient,
+  phosphor RGB values, inset rim highlight and 12px backdrop blur. Applied the material
+  to the docs header, sidebar, entry cards, topic cards, guide diagrams and article callouts.
+- Versioned the stylesheet and script references as `20260912-glass` through the shell
+  generator. No documentation content, navigation behavior or application code changed.
+- Browser proof against the staged website on port 8925: all 24 documentation pages at
+  390, 768 and 1440px widths, one H1 each, no document overflow. The first tablet sweep
+  identified 16px of article overflow on keyboard shortcuts; switching those rows to a
+  single column at tablet width resolved it on recheck. All mobile images loaded.
+- Visually inspected the docs landing page, installation article and illustrated first-workflow
+  guide. Verified loaded VT323 and computed 12px sidebar blur in the running browser.
+- Keyboard search for `Gatekeeper` opened `getting-started.html#macos-first-run`; the heading
+  appeared at 120px, below the 72px desktop header. Mobile menu open/close and native topic
+  expansion worked. With script execution blocked by the preview helper, navigation and
+  native topic expansion remained usable and the inactive search stayed hidden.
+- Five website suites passed: pricing hold 14, navigation 1,347, deployment staging 25,
+  app synchronization 8, live preview 15 (1,409 assertions). Shell check: 31 pages,
+  zero changes needed. The earlier incomplete full-repository gate remains incomplete;
+  this CSS correction does not claim a green integration gate or authorize a merge.
+
+This correction remains in the isolated website worktree and local preview; it is unpublished.

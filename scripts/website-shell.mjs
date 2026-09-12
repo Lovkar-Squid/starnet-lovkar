@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website');
 const CHECK = process.argv.includes('--check');
-const V = '20260912';
+const V = '20260912-glass';
 const ORIGIN = 'https://starnetos.com';
 const GITHUB = 'https://github.com/androoAGI/starnet';
 const RELEASES = 'https://github.com/androoAGI/starnet-releases/releases/latest';
