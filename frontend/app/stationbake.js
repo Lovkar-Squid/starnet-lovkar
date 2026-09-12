@@ -102,6 +102,8 @@ const StationBake = (() => {
   const WALL_TONE = { face: -0.32, top: -0.10, cap: 0.30 };   // cap back at the shipped +0.30 (2026-09-05, Andrew with a 0.10.13 frame: "there is no wall line") — the bright crown IS how a top-down view reads a wall; the exterior's darkness lives in HULL_EXPOSURE, never here
   let wallPalCache = null;
   function wallPal(z) {
+    if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.enabled())
+      return { base: '#393832', face: '#292821', top: '#424037', cap: '#575246' };
     let p = wallPalCache && wallPalCache.get(z);
     if (p) return p;
     const base = (G && G.wallBaseOf && G.wallBaseOf(z)) || '#3a3b41';
@@ -2656,6 +2658,7 @@ const StationBake = (() => {
     // the panel seam grid — the shipped shell, phase-locked to the same world grid it always used
     // (lines at x = 5 + 28k, y = 9 + 26k), so a re-clad station and an untouched one still align.
     dress(b, pal, x, y, w, h) {
+      if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.shellPlate(b, x, y, w, h)) return;
       b.strokeStyle = pal.seam; b.lineWidth = 1;
       for (let gx = 5 + Math.ceil((x - 5) / 28) * 28; gx < x + w; gx += 28) { b.beginPath(); b.moveTo(gx + .5, y); b.lineTo(gx + .5, y + h); b.stroke(); }
       for (let gy = 9 + Math.ceil((y - 9) / 26) * 26; gy < y + h; gy += 26) { b.beginPath(); b.moveTo(x, gy + .5); b.lineTo(x + w, gy + .5); b.stroke(); }
@@ -2689,6 +2692,7 @@ const StationBake = (() => {
        deliberate break of the axis's pixel-parity property, taken on Andrew's call; everything
        BELOW the veins pass still matches the pre-axis bake byte for byte. */
     veins(fg, pal, w, h, vx, vy, topOf) {
+      if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.shell(fg, w, h, vx, vy, topOf)) return;
       coursedVein(fg, w, h, vx, vy, {
         ch: STRAKE,
         crest: 'rgba(172,195,222,0.055)',      // the sky-catch along a plate's top edge
@@ -4601,7 +4605,8 @@ const StationBake = (() => {
 
   function buildBase() {
     const baseCv = canvas(CW, CH);
-    const b = translatedContext(baseCv);
+    const rawContext = translatedContext(baseCv);
+    const b = typeof IndustrialTextures !== 'undefined' ? IndustrialTextures.detailContext(rawContext) : rawContext;
 
     /* THE EXTERIOR SHELL, PER FOOTPRINT (2026-08-05). Every pass below used to run once for the whole
        station off a single constant; each is now driven by the owning room's HULL_RECIPES entry.
@@ -5190,8 +5195,12 @@ const StationBake = (() => {
   }
 
   function drawBase(ctx, baked, ox, oy, visibleRect) {
-    if (baked && baked.chunked) for (const c of visibleChunks(baked, visibleRect)) ctx.drawImage(c.baseCv, ox + c.x, oy + c.y);
-    else if (baked && baked.baseCv) ctx.drawImage(baked.baseCv, ox, oy);
+    const draw = (cv, x, y) => {
+      if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.drawBase(ctx, cv, x, y)) return;
+      ctx.drawImage(cv, x, y);
+    };
+    if (baked && baked.chunked) for (const c of visibleChunks(baked, visibleRect)) draw(c.baseCv, ox + c.x, oy + c.y);
+    else if (baked && baked.baseCv) draw(baked.baseCv, ox, oy);
   }
   function drawLight(ctx, baked, ox, oy, visibleRect) {
     if (baked && baked.chunked) for (const c of visibleChunks(baked, visibleRect)) ctx.drawImage(c.lightCv, ox + c.x, oy + c.y);

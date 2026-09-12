@@ -117,7 +117,10 @@ const WorldRenderer = (() => {
       preparedLight = null;
     }
     function drawBase(ctx) {
-      if (baked && baked.baseCv) ctx.drawImage(baked.baseCv, 0, 0);
+      if (baked && baked.baseCv) {
+        if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.drawBase(ctx, baked.baseCv)) return;
+        ctx.drawImage(baked.baseCv, 0, 0);
+      }
     }
     function drawEntities(ctx, items) {
       entityCount = (items || []).length;

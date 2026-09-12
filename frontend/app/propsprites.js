@@ -1212,6 +1212,7 @@ const PropSprites = (() => {
   };
 
   F.desk = (x, y, w, h, f) => {
+    if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.workstation(ctx, x, y, w, h)) return;
     /* v43 WORKSTATION — the desk is EXACTLY as it was (v19 body: slab, apron, legs, PC tower,
        monitor, keyboard). The ONLY change is the chair.
        ⛔ CHAIR CHANGES ONLY. The v42 pass rebuilt the whole workstation off the reference and Andrew
@@ -1309,6 +1310,7 @@ const PropSprites = (() => {
   };
 
   F.desk2 = (x, y, w, h, f) => {
+    if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.workstation(ctx, x, y, w, h)) return;
     /* v45 DUAL WORKSTATION (2x1) — the desk's slab and chair, but TWO screens on a shared crossbar
        and no tower. Six props grant COMPUTE and they must differ by what is ON the desk, since the
        slab underneath is the same piece of furniture in every one of them.
@@ -3595,9 +3597,11 @@ const PropSprites = (() => {
   function cacheIdleArt(id, state) {
     const paint=F[id], frames=new Map();
     F[id]=(x,y,w,h,f)=>{
-      if ((f && f.work) || buildingShadowSilhouette || !_ink.has(id) || typeof document === 'undefined' ||
+      if ((typeof IndustrialTextures !== 'undefined' && IndustrialTextures.enabled() && (id === 'desk' || id === 'desk2')) ||
+          (f && f.work) || buildingShadowSilhouette || !_ink.has(id) || typeof document === 'undefined' ||
           (document.fonts && document.fonts.status !== 'loaded')) return paint(x,y,w,h,f);
-      const key=JSON.stringify([x,y,w,h,!!MIRROR,CHROMA,state(f||{})]);
+      const key=JSON.stringify([x,y,w,h,!!MIRROR,CHROMA,state(f||{}),
+        typeof IndustrialTextures !== 'undefined' && IndustrialTextures.enabled()]);
       let image=frames.get(key);
       if (!image) {
         image=document.createElement('canvas');image.width=w+24;image.height=h+32;
@@ -11075,7 +11079,8 @@ const PropSprites = (() => {
   const shadowMasks = new Map();
   function shadowMask(f) {
     if (typeof document === 'undefined') return null;
-    const key=[f.t,f.w||1,f.h||1,f.r||0,f.m||0].join('|');
+    const key=[f.t,f.w||1,f.h||1,f.r||0,f.m||0,
+      typeof IndustrialTextures !== 'undefined' && IndustrialTextures.enabled()].join('|');
     if(shadowMasks.has(key)) {
       const cached=shadowMasks.get(key),g=cached.getContext('2d');
       if(g && !(g.isContextLost && g.isContextLost()))return cached;
