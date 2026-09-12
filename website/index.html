@@ -124,19 +124,19 @@
       <span class="section-no">03</span>
       <h2>DOWNLOAD STARNET</h2>
     </div>
-    <p class="dl-sub" data-reveal><b>The public release train targets Windows and macOS.</b> Release assets appear on the <a id="rel-page" href="https://github.com/androoAGI/starnet-releases/releases/latest" target="_blank" rel="noopener">releases page</a> after its signing, notarization, and updater-signature gates pass. Current stable version: <span class="ver">v0.11.2</span>. The live preview and docs track current source and may show work landing in the next signed release.</p>
+    <p class="dl-sub" data-reveal>Choose the installer for your computer. Current stable version: <span class="ver">v0.11.2</span>. See what changed in the <a id="rel-page" href="https://github.com/androoAGI/starnet-releases/releases/latest" target="_blank" rel="noopener">release notes</a>. The station preview and docs follow current source, which may include features coming in the next release.</p>
     <div class="dl-grid" data-reveal="stagger">
       <article class="dl-card" data-os="windows">
         <div class="dl-os">WINDOWS</div>
         <div class="dl-req">Windows 10 / 11 &middot; 64-bit</div>
         <a class="btn btn-primary dl-btn" data-asset="x64-setup.exe" href="https://github.com/androoAGI/starnet-releases/releases/latest" target="_blank" rel="noopener">[ .EXE INSTALLER ]</a>
-        <div class="dl-note">The public train requires Authenticode publisher and timestamp verification. SmartScreen can still warn while a certificate builds reputation; inspect the publisher before proceeding.</div>
+        <div class="dl-note">Open the installer and follow its steps. If SmartScreen warns, inspect the publisher before proceeding.</div>
       </article>
       <article class="dl-card" data-os="mac-arm">
         <div class="dl-os">MACOS &middot; APPLE SILICON</div>
         <div class="dl-req">M1 / M2 / M3 / M4</div>
         <a class="btn btn-primary dl-btn" data-asset="aarch64.dmg" href="https://github.com/androoAGI/starnet-releases/releases/latest" target="_blank" rel="noopener">[ .DMG ]</a>
-        <div class="dl-note">The public train requires Developer ID signing and Apple notarization. Stop and report any Gatekeeper trust failure.</div>
+        <div class="dl-note">Open the disk image and drag StarNet into Applications. If macOS reports a trust failure, contact support.</div>
       </article>
       <article class="dl-card" data-os="mac-intel">
         <div class="dl-os">MACOS &middot; INTEL</div>
@@ -152,7 +152,7 @@ cd starnet &amp;&amp; npm install &amp;&amp; npm start</code></pre>
       <button class="btn btn-small" type="button" data-copy="#src-cmd">[ COPY ]</button>
       <div class="source-run-note">Opens the station at <code>http://localhost:8787</code>. Same app, same sidecar, no installer &mdash; keys stay in a local file instead of the OS keychain.</div>
     </div>
-    <p class="dl-honesty">// honesty note: public-train requirements are not installed proof for a particular asset. The train fails closed unless Windows is Authenticode-signed and timestamped, both Mac builds are Developer-ID-signed and notarized, and updater signatures verify. Manual test builds can be unsigned and are not public releases. Linux is not a supported public target. See the <a href="docs/getting-started.html">getting-started guide</a>, and report any trust failure to <a href="mailto:androo.agi@gmail.com">androo.agi@gmail.com</a>.</p>
+    <p class="dl-honesty">Need help installing? Follow the <a href="docs/getting-started.html">quickstart</a> or open <a href="docs/troubleshooting.html">troubleshooting</a>. Public installers support Windows and macOS; Linux is not currently a supported public target.</p>
   </section>
 
   <!-- ===== docs ===== -->

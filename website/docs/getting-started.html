@@ -82,8 +82,7 @@
 <p class="doc-sub">// from download to your first working agent</p>
 
 <h2 id="download-and-install">1. Download and install</h2>
-<p><b>The public release train targets Windows and macOS.</b> Grab the right build
-from the
+<p>Download StarNet for <b>Windows or macOS</b> from the
 <a href="https://github.com/androoAGI/starnet-releases/releases/latest" target="_blank" rel="noopener">releases page</a>:</p>
 <table>
 <tr><th>Platform</th><th>Asset</th></tr>
@@ -95,29 +94,25 @@ from the
 Apple Silicon; "Intel" means Intel. The wrong one won't run.</p>
 
 <h3 id="windows-first-run">Windows first run</h3>
-<p>The public train requires a valid Authenticode publisher and trusted timestamp. SmartScreen
-  can still show <i>"Windows protected your PC"</i> while a certificate builds reputation.
+<p>Open the installer and follow its steps. If SmartScreen shows <i>"Windows protected your PC"</i>,
   Open <b>More info</b>, verify the publisher matches the release notes, and proceed only then.</p>
 
 <h3 id="macos-first-run">macOS first run</h3>
 <ol>
 <li>Open the <code>.dmg</code> and drag <b>StarNet</b> into <b>Applications</b>.</li>
-<li>Open StarNet from Applications. The public train requires Developer ID signing and a
-stapled Apple notarization ticket, so Gatekeeper should accept the release normally.</li>
+<li>Open <b>StarNet</b> from Applications.</li>
 </ol>
 <p>If Gatekeeper reports an unknown developer, missing notarization, or a damaged app, stop and
 report the release tag and asset name. Do not clear quarantine for a purported public release.</p>
 
 <h2 id="connect-a-provider">2. Connect a provider</h2>
-<p>On first launch StarNet asks for one model provider. An
-<b>OpenRouter API key</b> works everywhere (hundreds of models through one key), or use a
-supported OAuth sign-in. Details in <a href="providers.html">Providers &amp; keys</a>.</p>
+<p>First launch has two setup steps: choose your agent’s identity, then connect its model.
+Use a StarNet account, a supported provider sign-in, an API key, or a local model.
+The <a href="providers.html">models and providers reference</a> explains each option.</p>
+<p>Select a model before continuing. Your provider or local model must be available for the agent to answer.</p>
 
-<h2 id="awaken-your-first-agent">3. Awaken your first agent</h2>
-<p>The onboarding flow walks you through recruiting your first crew member: a short interview
-shapes its dossier, it takes a desk in your station, and you give it its first task from the
-COMMS window. When it uses a real tool you'll see it move to the workstation that grants that
-tool — the animation is driven by the actual run, not a script.</p>
+<h2 id="awaken-your-first-agent">3. Send your first task</h2>
+<p>Your first crew member is the <b>Overseer</b>. Talk to it in COMMS, the station’s chat window.</p>
 <ol>
 <li>Finish the introduction and open your agent’s <b>COMMS</b> conversation.</li>
 <li>Send a small request, such as <b>“Give me a three-item checklist for planning my week.”</b></li>
@@ -126,25 +121,18 @@ tool — the animation is driven by the actual run, not a script.</p>
 <p>That is enough to start using StarNet. When you want work to pass through several agents, follow <a href="guides/first-line.html">Build your first workflow</a>. To give your crew more tools, see <a href="guides/crew.html">Set up your crew</a>.</p>
 
 <h2 id="updates">4. Updates</h2>
-<p>The public train produces signed updater artifacts for Windows and both Mac architectures.
-The Update Center verifies downloads against a key baked into the app before installation,
-independently of OS signing. This is the supported path, not proof that a specific candidate was
-installed and updated; use the matching release installer if an update cannot complete.</p>
+<p>Use the desktop app’s <b>Update Center</b> to check for and install updates. If an update cannot
+complete, follow <a href="troubleshooting.html">the troubleshooting guide</a> and note the version and error shown.</p>
 
 <h2 id="run-from-source">Run from source</h2>
-<p>The sidecar runs on Node core modules alone — no <code>npm install</code> needed:</p>
+<p>For a development checkout, install Node.js 18 or later, then run:</p>
 <pre><code>git clone https://github.com/androoAGI/starnet.git
 cd starnet
-node sidecar/index.js
+npm install
+npm start
 # open http://localhost:8787</code></pre>
-<p>One exception: <b>hands-free Live Voice</b> needs the two offline speech packages
-(<code>@huggingface/transformers</code> and <code>kokoro-js</code>). The desktop installers ship them, so
-downloaded builds need nothing extra — but a from-source checkout has to install them before
-Live Voice will start:</p>
-<pre><code>npm install</code></pre>
-<p>Without them the station still runs normally. On Windows, Live Voice can fall back to the operating
-system's offline dictation engine and keyless Edge speech; on other platforms the panel refuses before
-opening your microphone because it has no local listening engine.</p>
+<p>Keep that terminal running while you use the station. The desktop installer is the simpler path if
+you do not need a source checkout. For speech setup and fallbacks, see <a href="agents.html">Agents, teams &amp; voice</a>.</p>
 
 <nav class="doc-pager" aria-label="More in Start here"><span></span><a class="pg next" href="providers.html"><span class="pg-k">NEXT &rarr;</span><span class="pg-t">Models &amp; providers</span></a></nav>
   </main>

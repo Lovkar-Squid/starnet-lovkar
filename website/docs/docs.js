@@ -24,7 +24,8 @@
     target.scrollIntoView({block:'start'});
   }
   addEventListener('hashchange',revealTarget);
-  if(location.hash) revealTarget();
+  // Wait for initial layout, including the reading aids and browser scroll restoration.
+  addEventListener('load',function(){if(location.hash)requestAnimationFrame(revealTarget);},{once:true});
 
   var heads=Array.from(main.querySelectorAll('h2[id]'));
   main.querySelectorAll('h2[id],h3[id]').forEach(function(h){
