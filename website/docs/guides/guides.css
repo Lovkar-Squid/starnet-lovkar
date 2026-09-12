@@ -4,23 +4,16 @@
    instead of describing it. Everything degrades to a still frame under reduced-motion. */
 @import url('../docs.css?v=20260912-glass');
 
-.docs-shell{ max-width:1240px; }
-/* Guides are schematic-heavy: the article column needs its width. Below 1400px the on-page TOC
-   rail steps aside (the sidebar still lists every guide); above it, all three columns fit. */
-@media (min-width:1180px) and (max-width:1399px){
-  .docs-shell.has-toc{ grid-template-columns:236px minmax(0,1fr); max-width:1240px; }
-  .docs-shell.has-toc .docs-toc{ display:none; }
-}
-@media (min-width:1400px){ .docs-shell.has-toc{ max-width:1480px; } }
+/* Guides and reference pages share the docs grid; diagrams adapt inside the article. */
 .buildsteps > li{ grid-template-columns:minmax(0,1fr) minmax(300px,44%); }
 
 /* ================= HERO ================= */
 .fm-hero{
   border:1px solid var(--line); background:rgba(0,0,0,.35);
-  padding:18px 20px 14px; margin:0 0 26px; position:relative; overflow:hidden;
+  padding:18px 20px 14px; margin:0 0 32px; position:relative; overflow:hidden;
 }
 .fm-hero .fh-kicker{ font-size:15px; letter-spacing:3px; color:var(--amber-d); margin-bottom:2px; }
-.fm-hero h1{ margin:0 0 4px !important; }
+.fm-hero h1{ margin:0 0 16px; }
 .fm-hero .fh-sub{ margin:0 0 14px; font-size:18px; color:rgba(236,224,207,.5); letter-spacing:.5px; }
 .fm-hero svg{ display:block; width:100%; height:auto; }
 

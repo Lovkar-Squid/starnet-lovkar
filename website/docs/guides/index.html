@@ -31,16 +31,19 @@
 
 <div class="docs-shell">
   <aside class="docs-side" id="docs-side">
-    <a class="side-home" href="../index.html">Documentation</a>
+    <div class="side-home">Documentation</div>
     <div class="side-search"><label class="sr-only" for="docs-search">Search docs</label><input id="docs-search" type="search" placeholder="Search docs…" autocomplete="off" spellcheck="false" aria-controls="docs-results" aria-expanded="false"><kbd class="search-key" aria-hidden="true">/</kbd><div class="ss-results" id="docs-results" hidden></div><span id="docs-search-status" class="sr-only" role="status" aria-live="polite"></span></div>
     <button class="side-toggle" type="button" aria-expanded="false" aria-controls="side-nav">Browse documentation</button>
     <nav id="side-nav" class="side-nav" aria-label="Docs">
-    <details class="side-group" open>
+      <div class="side-quick">
+      <a href="../index.html">Docs overview</a>
+      <a href="index.html" class="active" aria-current="page">Step-by-step guides</a>
+      </div>
+      <p class="side-label">Browse topics</p>
+    <details class="side-group">
     <summary class="side-title">Start here</summary>
-    <a href="../index.html">Documentation</a>
     <a href="../getting-started.html">Install &amp; first task</a>
     <a href="../providers.html">Models &amp; providers</a>
-    <a href="index.html" class="active" aria-current="page">Step-by-step guides</a>
     </details>
     <details class="side-group">
     <summary class="side-title">Station &amp; agents</summary>

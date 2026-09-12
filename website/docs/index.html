@@ -31,16 +31,19 @@
 
 <div class="docs-shell">
   <aside class="docs-side" id="docs-side">
-    <a class="side-home" href="index.html">Documentation</a>
+    <div class="side-home">Documentation</div>
     <div class="side-search"><label class="sr-only" for="docs-search">Search docs</label><input id="docs-search" type="search" placeholder="Search docs…" autocomplete="off" spellcheck="false" aria-controls="docs-results" aria-expanded="false"><kbd class="search-key" aria-hidden="true">/</kbd><div class="ss-results" id="docs-results" hidden></div><span id="docs-search-status" class="sr-only" role="status" aria-live="polite"></span></div>
     <button class="side-toggle" type="button" aria-expanded="false" aria-controls="side-nav">Browse documentation</button>
     <nav id="side-nav" class="side-nav" aria-label="Docs">
-    <details class="side-group" open>
+      <div class="side-quick">
+      <a href="index.html" class="active" aria-current="page">Docs overview</a>
+      <a href="guides/index.html">Step-by-step guides</a>
+      </div>
+      <p class="side-label">Browse topics</p>
+    <details class="side-group">
     <summary class="side-title">Start here</summary>
-    <a href="index.html" class="active" aria-current="page">Documentation</a>
     <a href="getting-started.html">Install &amp; first task</a>
     <a href="providers.html">Models &amp; providers</a>
-    <a href="guides/index.html">Step-by-step guides</a>
     </details>
     <details class="side-group">
     <summary class="side-title">Station &amp; agents</summary>
@@ -83,27 +86,27 @@
 
 <header class="doc-intro">
   <p class="eyebrow">THE STARNET HANDBOOK</p>
-  <h1>A station of your own.<br>Start here.</h1>
-  <p class="intro-text">Get your first agent working, build a crew, and turn useful work into a repeatable routine. Find the next step for what you want to do.</p>
+  <h1>Documentation</h1>
+  <p class="intro-text">Set up your first agent, learn a workflow, or look up a setting. Start here and find your next step.</p>
 </header>
 <section class="quickstart-block" aria-labelledby="first-task">
   <div class="section-label"><h2 id="first-task">New to StarNet?</h2><span>Start with one agent. Build from there.</span></div>
   <div class="learning-path">
-    <a class="start-step" href="getting-started.html#download-and-install"><span class="step-number">01 / INSTALL</span><strong>Get StarNet</strong><span>Download the app for your computer and open your new station.</span><b aria-hidden="true">Start the quickstart &rarr;</b></a>
-    <a class="start-step" href="providers.html"><span class="step-number">02 / CONNECT</span><strong>Choose your model</strong><span>Find a provider, connect an account or API key, or use a local model.</span><b aria-hidden="true">Explore providers &rarr;</b></a>
-    <a class="start-step" href="getting-started.html#awaken-your-first-agent"><span class="step-number">03 / RUN</span><strong>Give your agent a task</strong><span>Meet your first crew member and send a request. No conveyor belts required.</span><b aria-hidden="true">Run your first task &rarr;</b></a>
+    <a class="start-step" href="getting-started.html#download-and-install"><span class="step-number">01 / INSTALL</span><strong>Get StarNet</strong><span>Install the app and open your station.</span><b aria-hidden="true">Install StarNet &rarr;</b></a>
+    <a class="start-step" href="providers.html"><span class="step-number">02 / CONNECT</span><strong>Connect a model</strong><span>Use a provider account, API key, or local model.</span><b aria-hidden="true">Choose a provider &rarr;</b></a>
+    <a class="start-step" href="getting-started.html#awaken-your-first-agent"><span class="step-number">03 / RUN</span><strong>Run your first task</strong><span>Meet your agent and send a request.</span><b aria-hidden="true">Send your first task &rarr;</b></a>
   </div>
 </section>
 <section aria-labelledby="browse-topics">
   <div class="section-label"><h2 id="browse-topics">Browse by topic</h2><a href="guides/index.html">Prefer a walkthrough? &rarr;</a></div>
   <!-- docs-directory -->
 <div class="topic-grid">
-<details class="topic" id="start"><summary><span class="topic-number">01</span><span><strong>Start here</strong><span class="topic-desc">Install StarNet, choose a model, and give your first agent a task.</span><span class="topic-count">2 articles</span></span></summary><div class="topic-links"><a href="getting-started.html"><span>Install &amp; first task</span><small>Quickstart</small></a><a href="providers.html"><span>Models &amp; providers</span><small>Reference</small></a></div></details>
-<details class="topic" id="station"><summary><span class="topic-number">02</span><span><strong>Station &amp; agents</strong><span class="topic-desc">Build your station, recruit a crew, and give them the tools to work.</span><span class="topic-count">4 articles</span></span></summary><div class="topic-links"><a href="station.html"><span>Station &amp; capabilities</span><small>Reference</small></a><a href="guides/crew.html"><span>Set up your crew</span><small>Guide</small></a><a href="agents.html"><span>Agents, teams &amp; voice</span><small>Reference</small></a><a href="guides/goals.html"><span>Goals, quests &amp; XP</span><small>Guide</small></a></div></details>
-<details class="topic" id="workflows"><summary><span class="topic-number">03</span><span><strong>Conveyor workflows</strong><span class="topic-desc">Send work between agents, route different jobs, and combine results.</span><span class="topic-count">4 articles</span></span></summary><div class="topic-links"><a href="guides/first-line.html"><span>Build your first workflow</span><small>Guide</small></a><a href="guides/conveyors.html"><span>Conveyor basics</span><small>Guide</small></a><a href="guides/filter.html"><span>Filter &amp; route work</span><small>Guide</small></a><a href="guides/splitter-joiner.html"><span>Split &amp; combine results</span><small>Guide</small></a></div></details>
-<details class="topic" id="automation"><summary><span class="topic-number">04</span><span><strong>Repeat &amp; automate</strong><span class="topic-desc">Reuse good work, schedule routines, and configure unattended runs.</span><span class="topic-count">4 articles</span></span></summary><div class="topic-links"><a href="guides/routines.html"><span>Create repeatable work</span><small>Guide</small></a><a href="skills.html"><span>Skills &amp; routines reference</span><small>Reference</small></a><a href="guides/night-shift.html"><span>Set up Night Shift</span><small>Guide</small></a><a href="autonomy.html"><span>Autonomy controls</span><small>Reference</small></a></div></details>
-<details class="topic" id="connections"><summary><span class="topic-number">05</span><span><strong>Connect your tools</strong><span class="topic-desc">Connect services, message your station, or work with another harness.</span><span class="topic-count">4 articles</span></span></summary><div class="topic-links"><a href="connect-a-platform.html"><span>Connect a service</span><small>Guide</small></a><a href="guides/channels.html"><span>Messaging channels</span><small>Guide</small></a><a href="connectors.html"><span>Connectors &amp; MCP reference</span><small>Reference</small></a><a href="migrating.html"><span>From OpenClaw or Hermes</span><small>Guide</small></a></div></details>
-<details class="topic" id="help"><summary><span class="topic-number">06</span><span><strong>Troubleshooting &amp; help</strong><span class="topic-desc">Fix a problem, look up a shortcut, or get help from a human.</span><span class="topic-count">4 articles</span></span></summary><div class="topic-links"><a href="help.html"><span>Help center</span><small>Help</small></a><a href="troubleshooting.html"><span>Troubleshooting</span><small>Help</small></a><a href="shortcuts.html"><span>Keyboard shortcuts</span><small>Reference</small></a><a href="glossary.html"><span>Glossary</span><small>Reference</small></a></div></details>
+<section class="topic" id="start" aria-labelledby="start-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">01</span><div><h3 id="start-title">Start here</h3><p class="topic-desc">Install StarNet, choose a model, and give your first agent a task.</p></div></div><div class="topic-links"><a href="getting-started.html"><span>Install &amp; first task</span><small>Quickstart</small></a><a href="providers.html"><span>Models &amp; providers</span><small>Reference</small></a></div></section>
+<section class="topic" id="station" aria-labelledby="station-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">02</span><div><h3 id="station-title">Station &amp; agents</h3><p class="topic-desc">Build your station, recruit a crew, and give them the tools to work.</p></div></div><div class="topic-links"><a href="station.html"><span>Station &amp; capabilities</span><small>Reference</small></a><a href="guides/crew.html"><span>Set up your crew</span><small>Guide</small></a><a href="agents.html"><span>Agents, teams &amp; voice</span><small>Reference</small></a><a href="guides/goals.html"><span>Goals, quests &amp; XP</span><small>Guide</small></a></div></section>
+<section class="topic" id="workflows" aria-labelledby="workflows-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">03</span><div><h3 id="workflows-title">Conveyor workflows</h3><p class="topic-desc">Send work between agents, route different jobs, and combine results.</p></div></div><div class="topic-links"><a href="guides/first-line.html"><span>Build your first workflow</span><small>Guide</small></a><a href="guides/conveyors.html"><span>Conveyor basics</span><small>Guide</small></a><a href="guides/filter.html"><span>Filter &amp; route work</span><small>Guide</small></a><a href="guides/splitter-joiner.html"><span>Split &amp; combine results</span><small>Guide</small></a></div></section>
+<section class="topic" id="automation" aria-labelledby="automation-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">04</span><div><h3 id="automation-title">Repeat &amp; automate</h3><p class="topic-desc">Reuse good work, schedule routines, and configure unattended runs.</p></div></div><div class="topic-links"><a href="guides/routines.html"><span>Create repeatable work</span><small>Guide</small></a><a href="skills.html"><span>Skills &amp; routines reference</span><small>Reference</small></a><a href="guides/night-shift.html"><span>Set up Night Shift</span><small>Guide</small></a><a href="autonomy.html"><span>Autonomy controls</span><small>Reference</small></a></div></section>
+<section class="topic" id="connections" aria-labelledby="connections-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">05</span><div><h3 id="connections-title">Connect your tools</h3><p class="topic-desc">Connect services, message your station, or work with another harness.</p></div></div><div class="topic-links"><a href="connect-a-platform.html"><span>Connect a service</span><small>Guide</small></a><a href="guides/channels.html"><span>Messaging channels</span><small>Guide</small></a><a href="connectors.html"><span>Connectors &amp; MCP reference</span><small>Reference</small></a><a href="migrating.html"><span>From OpenClaw or Hermes</span><small>Guide</small></a></div></section>
+<section class="topic" id="help" aria-labelledby="help-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">06</span><div><h3 id="help-title">Troubleshooting &amp; help</h3><p class="topic-desc">Fix a problem, look up a shortcut, or get help from a human.</p></div></div><div class="topic-links"><a href="help.html"><span>Help center</span><small>Help</small></a><a href="troubleshooting.html"><span>Troubleshooting</span><small>Help</small></a><a href="shortcuts.html"><span>Keyboard shortcuts</span><small>Reference</small></a><a href="glossary.html"><span>Glossary</span><small>Reference</small></a></div></section>
 </div>
 <!-- /docs-directory -->
 </section>

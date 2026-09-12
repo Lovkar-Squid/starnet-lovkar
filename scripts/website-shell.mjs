@@ -111,16 +111,23 @@ function topbar(page) {
 }
 function sidebar(page) {
   const here = (u) => rel(page, u);
+  const overviewLinks = FLAT.filter(i => i.kind === 'Overview').map(i =>
+    `      <a href="${here(i.url)}"${i.url === page ? ' class="active" aria-current="page"' : ''}>${i.url === 'docs/index.html' ? 'Docs overview' : esc(i.title)}</a>`).join('\n');
   const groups = NAV.map(g => {
-    const links = g.items.map(i =>
+    const items = g.items.filter(i => i.kind !== 'Overview');
+    const links = items.map(i =>
       `    <a href="${here(i.url)}"${i.url === page ? ' class="active" aria-current="page"' : ''}>${esc(i.title)}</a>`).join('\n');
-    return `    <details class="side-group"${g.items.some(i => i.url === page) ? ' open' : ''}>\n    <summary class="side-title">${esc(g.group)}</summary>\n${links}\n    </details>`;
+    return `    <details class="side-group"${items.some(i => i.url === page) ? ' open' : ''}>\n    <summary class="side-title">${esc(g.group)}</summary>\n${links}\n    </details>`;
   }).join('\n');
   return `<aside class="docs-side" id="docs-side">
-    <a class="side-home" href="${here('docs/index.html')}">Documentation</a>
+    <div class="side-home">Documentation</div>
     <div class="side-search"><label class="sr-only" for="docs-search">Search docs</label><input id="docs-search" type="search" placeholder="Search docs…" autocomplete="off" spellcheck="false" aria-controls="docs-results" aria-expanded="false"><kbd class="search-key" aria-hidden="true">/</kbd><div class="ss-results" id="docs-results" hidden></div><span id="docs-search-status" class="sr-only" role="status" aria-live="polite"></span></div>
     <button class="side-toggle" type="button" aria-expanded="false" aria-controls="side-nav">Browse documentation</button>
     <nav id="side-nav" class="side-nav" aria-label="Docs">
+      <div class="side-quick">
+${overviewLinks}
+      </div>
+      <p class="side-label">Browse topics</p>
 ${groups}
     </nav>
   </aside>`;
@@ -180,7 +187,7 @@ function textOf(html) {
 function directory() {
   return '<!-- docs-directory -->\n<div class="topic-grid">\n' + NAV.map((g, n) => {
     const items = g.items.filter(i => i.kind !== 'Overview');
-    return `<details class="topic" id="${g.id}"><summary><span class="topic-number">0${n + 1}</span><span><strong>${esc(g.group)}</strong><span class="topic-desc">${esc(g.description)}</span><span class="topic-count">${items.length} articles</span></span></summary><div class="topic-links">` + items.map(i => `<a href="${rel('docs/index.html', i.url)}"><span>${esc(i.title)}</span><small>${i.kind}</small></a>`).join('') + '</div></details>';
+    return `<section class="topic" id="${g.id}" aria-labelledby="${g.id}-title"><div class="topic-head"><span class="topic-number" aria-hidden="true">0${n + 1}</span><div><h3 id="${g.id}-title">${esc(g.group)}</h3><p class="topic-desc">${esc(g.description)}</p></div></div><div class="topic-links">` + items.map(i => `<a href="${rel('docs/index.html', i.url)}"><span>${esc(i.title)}</span><small>${i.kind}</small></a>`).join('') + '</div></section>';
   }).join('\n') + '\n</div>\n<!-- /docs-directory -->';
 }
 

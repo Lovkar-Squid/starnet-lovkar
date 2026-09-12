@@ -123,3 +123,32 @@ font sizes retain the phosphor identity without fractional scaling of the pixel 
   for this CSS refinement; its earlier incomplete result still prevents integration.
 
 Saved locally in the existing owned worktree; no merge or publication.
+
+## Organization and alignment (2026-09-12)
+
+- Replaced the collapsed topic directory with six visible sections containing all 22
+  article links and their guide/reference/help labels. Existing topic and article URLs
+  remain valid. The first-run path is shorter, with one action per step.
+- Promoted Docs overview and Step-by-step guides to permanent sidebar links and removed
+  their duplicates from Start here. Removed the redundant landing-page breadcrumb.
+- Unified guide and reference column widths, header gutters, sticky rail positions and
+  card padding. Shared CSS grid rows align onboarding labels, titles, descriptions and
+  actions, and align each pair of directory cards without fixed heights or clipped text.
+- Live browser: all 24 pages at 390, 768, 1280 and 1440px (96 checks) had no horizontal
+  document/article overflow, one H1 and one current-page marker. At each width every page
+  shared the same article left edge; brand/sidebar left edges and sidebar/contents-rail
+  top edges matched. Visually inspected overview, mobile navigation and illustrated guide.
+- At 1440px the three setup cards measured 210.97px high, with identical internal row
+  positions. At the normal 1049px preview width they measured 264.95px, again with all
+  corresponding rows aligned despite title wrapping. Directory card pairs also share
+  matching heights and article-list start positions.
+- Script-free mobile overview exposes all 22 article links and both overview destinations.
+  Mobile navigation successfully opened the guide library. A 320px check caught the
+  GitHub arrow wrapping; nonwrapping labels and a smaller mobile nav gap restored the
+  107px header. Direct topic links clear that header at 120px with no overflow.
+- Five website suites passed: pricing hold 14, navigation 1,323 (1,079 internal links),
+  deployment staging 25, app synchronization 8, live preview 15. The lower link count
+  reflects the removed duplicate overview link on each of the 24 pages. No full-repository
+  gate rerun or integration claim; the prior incomplete gate still applies.
+
+The shared manifest generates the sidebar and directory. This remains a local unpublished revision.

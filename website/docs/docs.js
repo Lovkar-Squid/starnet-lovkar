@@ -13,7 +13,8 @@
   crumbs.innerHTML='<a href="'+up+'index.html">Docs</a><span class="sep">/</span>' +
     (overview ? '<span class="here">'+esc(d.body.dataset.title)+'</span>' :
     '<a href="'+up+'index.html#'+esc(d.body.dataset.groupId)+'">'+esc(d.body.dataset.group)+'</a><span class="sep">/</span><span class="doc-kind">'+esc(d.body.dataset.kind)+'</span>');
-  main.prepend(crumbs);
+  // The docs landing page already identifies itself; articles keep their topic trail.
+  if(!overview || d.body.dataset.title!=='Documentation') main.prepend(crumbs);
 
   function revealTarget(){
     var id; try{id=decodeURIComponent(location.hash.slice(1));}catch(e){return;}
