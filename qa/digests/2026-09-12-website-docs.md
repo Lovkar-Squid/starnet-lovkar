@@ -101,3 +101,25 @@ direction while retaining the six topic groups, existing URLs, search and readin
   this CSS correction does not claim a green integration gate or authorize a merge.
 
 This correction remains in the isolated website worktree and local preview; it is unpublished.
+
+## Lighting refinement — continued glass concept (2026-09-12)
+
+The user accepted the concept and reported that the lighting looked buggy. Live inspection
+showed a page glow, a second hero glow, translucent card gradients and a foreground vignette
+compositing together. The docs now use a restrained background light behind the content,
+dark-backed glass and a reflection with fixed pixel stops. Expanding a panel no longer
+stretches its reflection across the new height. Reduced heading bloom and integer responsive
+font sizes retain the phosphor identity without fractional scaling of the pixel face.
+
+- Live proof: 72 checks (all 24 pages at 390, 768 and 1440px), no document or article
+  overflow, atmospheric overlays behind the content, integer H1 sizes at each breakpoint.
+- Visually inspected the landing page, expanded topic directory and mobile installation
+  article. The automation topic grew from 162px to 372px with the same reflection definition.
+  Body copy has no text shadow. Mobile menu open/close and keyboard search worked;
+  `macos-first-run` landed at 120px below the 107px mobile header.
+- Navigation suite: 1,347 assertions, including 1,103 internal links; staging suite: 25
+  assertions. Shell check: 31 pages, zero changes needed. Diff whitespace check passed,
+  and the staged stylesheet hash equals source. The full repository gate was not rerun
+  for this CSS refinement; its earlier incomplete result still prevents integration.
+
+Saved locally in the existing owned worktree; no merge or publication.

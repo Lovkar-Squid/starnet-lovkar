@@ -5,15 +5,16 @@ html:has(body.docs-page){scroll-behavior:auto}
   --bg:#0a0806;--amber:#ffaa33;--amber-b:#ffe4b4;--amber-d:#bb915c;
   --ink:#f2d6ad;--ink-d:#cfb48e;--line:rgba(255,170,51,.22);--panel:rgba(255,170,51,.035);
   --ph-rgb:255,170,51;--ph-bright-rgb:255,228,180;
-  /* Same material as frontend/css/menu-glass.css. */
-  --menu-glass:linear-gradient(125deg,rgba(var(--ph-bright-rgb),.14),rgba(var(--ph-rgb),.07) 48%,rgba(var(--ph-rgb),.025));
-  --glass-rim:inset 0 1px 0 rgba(var(--ph-bright-rgb),.12);
+  /* A reflection of fixed depth stays consistent as cards expand or the page scrolls. */
+  --menu-glass:linear-gradient(180deg,rgba(var(--ph-bright-rgb),.075),rgba(var(--ph-rgb),.025) 96px,rgba(var(--ph-rgb),.018) 220px),linear-gradient(rgba(14,11,8,.82),rgba(14,11,8,.82));
+  --glass-rim:inset 0 1px 0 rgba(var(--ph-bright-rgb),.08);
   font:20px/1.55 'VT323',monospace;
-  background:radial-gradient(ellipse at 76% 0,rgba(var(--ph-rgb),.09),transparent 52%),var(--bg);
-  background-attachment:fixed;
+  background:var(--bg);
+  isolation:isolate;
 }
-.docs-page .crt-scan{opacity:.18;animation:none}
-.docs-page .crt-vignette{opacity:.3}
+/* Atmospheric layers sit behind the reading surface, never over the glyphs. */
+.docs-page .crt-scan{z-index:0;opacity:.18;animation:none;mix-blend-mode:normal}
+.docs-page .crt-vignette{z-index:0;opacity:1;background:radial-gradient(ellipse 900px 620px at 72% 0,rgba(var(--ph-rgb),.035),transparent 80%)}
 .docs-page a{text-underline-offset:3px}
 .docs-page :focus-visible{outline:2px solid var(--amber);outline-offset:4px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -52,7 +53,7 @@ html:has(body.docs-page){scroll-behavior:auto}
 .crumbs .sep{color:var(--amber-d)}
 .crumbs .here{color:var(--ink-d)}
 .doc-kind{font:15px/1.4 'VT323',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--amber-d)}
-.docs-main h1{font:400 clamp(38px,4vw,56px)/1.05 'VT323',monospace;letter-spacing:.4px;margin:0 0 18px;text-wrap:balance;color:var(--amber-b);text-shadow:0 0 24px rgba(var(--ph-rgb),.22)}
+.docs-main h1{font:400 48px/1.1 'VT323',monospace;letter-spacing:.4px;margin:0 0 18px;text-wrap:balance;color:var(--amber-b);text-shadow:0 0 14px rgba(var(--ph-rgb),.12)}
 .docs-main .doc-sub{color:var(--amber-d);font-size:19px;margin:0 0 28px}
 .docs-main h2{margin:40px 0 14px;font:400 30px/1.15 'VT323',monospace;letter-spacing:.4px;scroll-margin-top:120px;color:var(--amber-b)}
 .docs-main h3{margin:26px 0 10px;font:25px/1.4 'VT323',monospace;scroll-margin-top:120px;color:var(--amber-b)}
@@ -84,7 +85,7 @@ h2:hover .h-anchor,h3:hover .h-anchor,.h-anchor:focus{opacity:1}
 .docs-toc{display:none}
 @media(min-width:1280px){.docs-shell.has-toc{grid-template-columns:228px minmax(0,1fr) 174px;gap:32px}.docs-toc{display:block;position:sticky;top:100px;align-self:start;max-height:calc(100dvh - 120px);overflow-y:auto}.toc-title{font-size:16px;font-weight:400;color:var(--ink);margin:0 0 16px}.docs-toc ol{margin:0;padding:0;list-style:none;border-left:1px solid var(--line)}.docs-toc a{display:block;color:var(--ink-d);text-decoration:none;padding:6px 0 6px 14px;font-size:16px;line-height:1.5}.docs-toc a.on{color:var(--amber-b);border-left:1px solid var(--amber);margin-left:-1px}.toc-top{margin-top:16px}}
 .read-progress{position:fixed;top:0;left:0;height:2px;width:100%;background:var(--amber);transform:scaleX(0);transform-origin:left;z-index:70}
-.doc-intro{margin:4px 0 40px;padding:28px 30px;border:1px solid var(--line);border-radius:14px;background:radial-gradient(ellipse at 0% 50%,rgba(var(--ph-rgb),.12),transparent 65%),var(--menu-glass);box-shadow:var(--glass-rim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.doc-intro{margin:4px 0 40px;padding:28px 30px;border:1px solid var(--line);border-radius:14px;background:var(--menu-glass);box-shadow:var(--glass-rim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 .docs-main .eyebrow{font:15px/1.5 'VT323',monospace;color:var(--amber);letter-spacing:.15em;margin-bottom:16px}
 .doc-intro .intro-text{max-width:650px;font-size:21px;line-height:1.5;margin-bottom:0}
 .section-label{display:flex;justify-content:space-between;gap:16px;align-items:baseline;margin:0 0 18px}
@@ -132,14 +133,17 @@ h2:hover .h-anchor,h3:hover .h-anchor,.h-anchor:focus{opacity:1}
 
 /* The website chrome follows the same station material as the documentation. */
 .docs-page .topbar{background:var(--menu-glass),rgba(10,8,6,.86);box-shadow:var(--glass-rim);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.docs-page .brand{font-size:28px;text-shadow:0 0 14px rgba(var(--ph-rgb),.3)}
+.docs-page .brand{font-size:28px;text-shadow:0 0 12px rgba(var(--ph-rgb),.18)}
 .docs-page .brand-divider{color:var(--amber-d)}
 .docs-page .brand-context,.docs-page .topnav a,.docs-page .topbar-right{font:18px 'VT323',monospace;letter-spacing:.3px;color:var(--ink-d)}
 .docs-page .topbar-right a{color:var(--ink-d)}
 .docs-page .topbar-right .nav-download{color:var(--amber-b);background:var(--menu-glass);border-color:rgba(var(--ph-rgb),.3);border-radius:8px;box-shadow:var(--glass-rim)}
-.docs-page .topnav a.on,.docs-page .topnav a:hover{color:var(--amber-b);text-shadow:0 0 12px rgba(var(--ph-rgb),.3)}
+.docs-page .topnav a.on,.docs-page .topnav a:hover{color:var(--amber-b);text-shadow:0 0 12px rgba(var(--ph-rgb),.12)}
 .docs-page .footer-line{font:18px/1.5 'VT323',monospace;color:var(--ink-d)}
 .docs-page .footer-links a{font:16px/1.4 'VT323',monospace;color:var(--amber-d);letter-spacing:.5px}
 .docs-page .footer-fine{font:15px/1.5 'VT323',monospace;color:var(--amber-d)}
 .guide-row:last-child{border:0}
-@media(max-width:760px){.docs-page .brand{font-size:25px}.docs-page .brand-context{font-size:17px}.docs-page .topnav a{font-size:18px}.docs-page .topbar-right .nav-download{font-size:17px}}
+/* Integer type sizes keep the pixel face stable between viewport widths. */
+@media(min-width:1280px){.docs-main h1{font-size:56px}}
+@media(max-width:980px){.docs-main h1{font-size:42px}}
+@media(max-width:760px){.docs-main h1{font-size:38px}.docs-page .brand{font-size:25px}.docs-page .brand-context{font-size:17px}.docs-page .topnav a{font-size:18px}.docs-page .topbar-right .nav-download{font-size:17px}}
