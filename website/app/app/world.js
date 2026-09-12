@@ -7121,7 +7121,7 @@ const World = (() => {
      smoothing so VT323 stays crisp: quiet dark glass, a fine neutral frame,
      a small suit-colour accent, restrained phosphor bloom, and a small tail
      pointing down at the head. A glance, never a window (hover law). */
-  const BUBBLE_MAXW = 208;   // CSS px — leave short messages room to breathe
+  const BUBBLE_MAXW = 168;   // CSS px — compact remarks, not floating panels
   function drawBubble(now, who) {
     who = who || agent;
     if (!cache || !who) return;
@@ -7143,11 +7143,11 @@ const World = (() => {
     const suit = who.color || '#ffaa33';
 
     // Wrap to <=3 lines; ellipsize overflow, including unbroken identifiers.
-    const fontSz = 16, lh = 18, padX = 12, padY = 10, tailW = 4, tailH = 5;
+    const fontSz = 16, lh = 17, padX = 6, padY = 5, tailW = 4, tailH = 5;
     const raw = String(s.text);
     const tag = raw.match(/^(working|error|blocked):\s*/i);
     const label = tag ? tag[1].toUpperCase() : '';
-    const labelH = label ? 17 : 0;
+    const labelH = label ? 13 : 0;
     ctx.font = fontSz + 'px ' + PLATE_FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     const words = (tag ? raw.slice(tag[0].length) : raw).split(/\s+/), lines = []; let line = '', truncated = false;
     for (const w of words) {
@@ -7170,7 +7170,7 @@ const World = (() => {
       lines[lines.length - 1] = last.replace(/\s+$/, '') + '…';
     }
     const textW = lines.length ? Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) : 1;
-    const bw = Math.round(Math.max(label ? 96 : 40, Math.min(BUBBLE_MAXW, textW) + padX * 2));
+    const bw = Math.round(Math.max(label ? 72 : 28, Math.min(BUBBLE_MAXW, textW) + padX * 2));
     const bh = lines.length * lh + padY * 2 + labelH;
 
     // anchor centered above the head, crisp + clamped to the canvas (same body->screen math as the nameplate)
