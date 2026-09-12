@@ -41,7 +41,7 @@ Discovery-cost check: `.dogfood/browser-discovery-cost.json` records a real Chro
 
 ## Verdict
 
-Open pending exact customer correlation. A source improvement for the reproduced discovery gap is being verified; neither installer verification nor customer recovery is claimed.
+Open pending exact customer correlation. Source improvement `dcbc2b941` fixes the reproduced discovery gap. Final validation: `npm run test:fast` passed all 771 steps; `npm run test:http` passed all 113 steps, including the 105-assertion browser gauntlet. Syntax checks, diff whitespace checks and bug-register validation passed. An earlier fast invocation hit the unrelated MCP restart/token-rediscovery test; it passed in isolation and in the subsequent complete 771-step run. No MCP code was changed. Neither a rebuilt installer nor customer recovery is claimed; this lane was not merged or released.
 
 ## Regression
 
