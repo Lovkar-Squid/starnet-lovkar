@@ -7117,11 +7117,11 @@ const World = (() => {
   }
 
   /* ---------- the SPEECH BUBBLE: what a body is saying right now (a routed "received: …" beat, a muttered
-     aside, an error line, a LEVEL tick). Rendered in the SAME material as the nameplate — screen-space + no
-     smoothing so the VT323 stays crisp instead of being scaled-then-barrel-warped into mush, dark CRT glass
-     with scanlines, an amber structural frame with a suit accent, a warm phosphor bloom, and a small tail
+     aside, an error line, a LEVEL tick). Rendered in screen-space with no
+     smoothing so VT323 stays crisp: quiet dark glass, a fine neutral frame,
+     a small suit-colour accent, restrained phosphor bloom, and a small tail
      pointing down at the head. A glance, never a window (hover law). */
-  const BUBBLE_MAXW = 152;   // CSS px — a spoken line wraps within this before ellipsizing
+  const BUBBLE_MAXW = 208;   // CSS px — leave short messages room to breathe
   function drawBubble(now, who) {
     who = who || agent;
     if (!cache || !who) return;
@@ -7136,21 +7136,31 @@ const World = (() => {
 
     // draw in SCREEN space (mirrors drawNameplate): pixel-snapped, unsmoothed VT323 that reads cleanly at any
     // zoom, then it rides the same barrel-curve/scanline pass the rest of the feed does. All geometry is CSS px.
+    ctx.save();
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingEnabled = false;
     const Wc = cv.width / dpr, Hc = cv.height / dpr;
     const suit = who.color || '#ffaa33';
 
-    // wrap to <=3 lines within BUBBLE_MAXW; ellipsize a truncated tail so an overrun reads as "…", not a hard cut
-    const fontSz = 15, lh = 16, padX = 6, padY = 5, tailW = 5, tailH = 6;
+    // Wrap to <=3 lines; ellipsize overflow, including unbroken identifiers.
+    const fontSz = 16, lh = 18, padX = 12, padY = 10, tailW = 4, tailH = 5;
+    const raw = String(s.text);
+    const tag = raw.match(/^(received|working|error|blocked):\s*/i);
+    const label = tag ? tag[1].toUpperCase() : '';
+    const labelH = label ? 17 : 0;
     ctx.font = fontSz + 'px ' + PLATE_FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    const words = String(s.text).split(' '), lines = []; let line = '', truncated = false;
+    const words = (tag ? raw.slice(tag[0].length) : raw).split(/\s+/), lines = []; let line = '', truncated = false;
     for (const w of words) {
       const test = line ? line + ' ' + w : w;
       if (ctx.measureText(test).width > BUBBLE_MAXW && line) {
         lines.push(line); line = w;
         if (lines.length >= 3) { truncated = true; break; }
       } else line = test;
+      // An unbroken URL or identifier must stay inside the card too.
+      if (ctx.measureText(line).width > BUBBLE_MAXW) {
+        while (line && ctx.measureText(line + '…').width > BUBBLE_MAXW) line = line.slice(0, -1);
+        truncated = true; break;
+      }
     }
     if (line && lines.length < 3) lines.push(line);
     else if (line) truncated = true;
@@ -7160,8 +7170,8 @@ const World = (() => {
       lines[lines.length - 1] = last.replace(/\s+$/, '') + '…';
     }
     const textW = lines.length ? Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) : 1;
-    const bw = Math.round(Math.max(26, Math.min(BUBBLE_MAXW, textW) + padX * 2));
-    const bh = lines.length * lh + padY * 2;
+    const bw = Math.round(Math.max(label ? 96 : 40, Math.min(BUBBLE_MAXW, textW) + padX * 2));
+    const bh = lines.length * lh + padY * 2 + labelH;
 
     // anchor centered above the head, crisp + clamped to the canvas (same body->screen math as the nameplate)
     const ax = (bodyPosX(who) * scale + panX) / dpr, ay = (bodyPosY(who) * scale + panY) / dpr;
@@ -7175,39 +7185,41 @@ const World = (() => {
 
     bubbleChrome(bx, by, bw, bh, tx, tailW, tailH, suit, 1);
 
-    // the line(s): VT323 in warm phosphor, with any leading "label:" (received:, working…) dimmed to a tag
+    // Separate provenance from message content; keep the message itself calm and readable.
     ctx.font = fontSz + 'px ' + PLATE_FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.shadowBlur = 4; ctx.shadowColor = suit;
-    ctx.fillStyle = '#ffe0b0';
-    lines.forEach((l, i) => ctx.fillText(l, bx + padX, by + padY + lh * (i + 1) - 4));
-    const label = lines.length ? (lines[0].match(/^\S+:/) || [])[0] : null;
-    if (label) { ctx.shadowBlur = 3; ctx.fillStyle = 'rgba(255,171,64,0.72)'; ctx.fillText(label, bx + padX, by + padY + lh - 4); }
-    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 1; ctx.shadowColor = suit;
+    ctx.fillStyle = '#eee8db';
+    lines.forEach((l, i) => ctx.fillText(l, bx + padX, by + padY + labelH + lh * (i + 1) - 4));
+    if (label) {
+      ctx.shadowBlur = 0; ctx.font = '12px ' + PLATE_FONT;
+      ctx.fillStyle = suit; ctx.globalAlpha = 0.8;
+      ctx.fillText(label, bx + padX, by + padY + 9);
+    }
+    ctx.restore();
   }
 
-  /* The bubble's MATERIAL, content-free: dark CRT glass + scanlines, an amber structural frame, the
-     tail poured into the same surface, a suit accent along the crown. Extracted so the spoken-line
+  /* The bubble's MATERIAL, content-free: dark glass, a quiet frame, the
+     tail poured into the same surface, a small suit accent. Shared so the spoken-line
      bubble and the peer-chatter bubble are physically the SAME object and can never drift into two
-     looks. `a` scales every alpha in one place so a caller can fade the whole card; a === 1 is the
-     shipped spoken-line appearance, unchanged stroke for stroke. */
+     looks. `a` scales every alpha so a caller can fade the whole card. */
   function bubbleChrome(bx, by, bw, bh, tx, tailW, tailH, suit, a) {
     a = (a == null) ? 1 : a;
     ctx.globalAlpha = a;
-    ctx.fillStyle = 'rgba(6,5,4,0.94)'; ctx.fillRect(bx, by, bw, bh);
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(13,17,19,0.97)'; ctx.fillRect(bx, by, bw, bh);
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     // the pointing tail (glass, so box + tail read as one poured surface)
     ctx.beginPath(); ctx.moveTo(tx - tailW, by + bh); ctx.lineTo(tx + tailW, by + bh); ctx.lineTo(tx, by + bh + tailH); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha = 0.13 * a; ctx.fillStyle = '#000';
-    for (let sy = by + 2; sy < by + bh - 1; sy += 3) ctx.fillRect(bx + 1, sy, bw - 2, 1);
     ctx.globalAlpha = a;
 
-    // amber structural frame: the box outline + the two slanted tail edges, then re-glass the seam so the tail
+    // Fine structural frame and tail edges; re-glass the seam so the tail
     // opens into the box instead of being fenced off by the box's bottom stroke
-    ctx.strokeStyle = '#b9791c'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(173,190,187,0.3)'; ctx.lineWidth = 1;
     ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
     ctx.beginPath(); ctx.moveTo(tx - tailW, by + bh - 0.5); ctx.lineTo(tx, by + bh + tailH); ctx.lineTo(tx + tailW, by + bh - 0.5); ctx.stroke();
-    ctx.fillStyle = 'rgba(6,5,4,0.94)'; ctx.fillRect(tx - tailW + 1, by + bh - 1, tailW * 2 - 1, 2);
-    // suit accent along the top edge (the body's own colour, like the nameplate's crown)
-    ctx.globalAlpha = 0.6 * a; ctx.fillStyle = suit; ctx.fillRect(bx + 1, by, bw - 2, 1); ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(13,17,19,0.97)'; ctx.fillRect(tx - tailW + 1, by + bh - 1, tailW * 2 - 1, 2);
+    // Suit colour is a small identity accent, leaving the message as the brightest element.
+    ctx.globalAlpha = 0.8 * a; ctx.fillStyle = suit; ctx.fillRect(bx + 1, by + 6, 2, Math.min(16, bh - 12)); ctx.globalAlpha = a;
   }
 
   /* ---------- W6: THE PEER-CHATTER BUBBLE — the untranscribable line over whoever holds the floor.
