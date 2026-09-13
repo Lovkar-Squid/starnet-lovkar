@@ -63,7 +63,7 @@ reference style; the existing material/color picker does not restyle that editio
 Other prop families, character artwork, and high-resolution side/corner sampling
 are outside this first pass.
 
-## Furniture revision — September 12, current receipt
+## Furniture revision — September 12, previous receipt
 
 Done for this revision means: the live preview displays the compact workstation
 without stretching, office chairs use the reference materials in their authored
@@ -119,3 +119,46 @@ This revision remains an isolated, running visual preview. No merge, installed
 application update, release claim, or provider/model run was performed.
 
 ![Furniture revision in the running station](live-furniture.jpg)
+
+## Proportions and wall continuity — September 12, current receipt
+
+Done for this revision means the running station shows broader furniture at the
+previous height, centered chairs, and sharp wall art that continues around the
+corners and through the shell's ownership masks.
+
+Observed in the live preview at `http://127.0.0.1:18792/?textures=industrial`:
+
+- Refit lists DESK and DESK ×2 as **3 × 1 tiles**. Clicking a placed desk opens
+  its workstation assignment dialog. The station still has five objects.
+- Saved desks at (10,2), (4,2), (16,2) are 3 × 1. Side chairs at (5,3) and
+  (17,3) are centered under their desks. Placement validation passes for all five.
+- The console occupies about 38 × 23.2 world pixels without stretching; the
+  previous height was about 23.4. Chair height remains 16 pixels with wider bodies.
+- A new single wall bay replaces the compressed four-bay material. Straight walls
+  and corners share the same six-times-resolution sampling. The exterior shell
+  carries its dense artwork through its masking layers instead of flattening it.
+- The live canvas displays sharp shell plating and connected corner detailing.
+  Dataset: `texturePack: industrial`, `textureResolution: 6`. Browser errors: `[]`.
+- Refit reports `Station layout saved`. The isolated preview was restarted with
+  `dev/seed.js --keep`, and its health endpoint returned `status: ok`.
+
+Native canvas verification passes: 6,400 primary/dense alpha comparisons, eight
+chair orientation/mirror combinations, exact occupied-seat rim pixel agreement,
+unchanged furniture ground contact, preserved workstation aspect ratio, unchanged
+wall-mask authority, and exact pixel agreement between straight and wrapped wall
+sampling under the same projection. All three canvas-image overloads preserve
+detailed shell art and masks through nested composites. A missing asset keeps
+the original renderer and two-tile catalogue sizes; normal mode is unchanged.
+
+The focused canonical runner passes **28 steps**, exit 0, covering prop lighting,
+rendering, mounting, chair/seat behavior, Refit footprints, station baking,
+world lighting and website synchronization. Log:
+`dev/industrial-textures/proportions-focused.log`. Syntax checks and
+`git diff --check` pass. The generated website mirror contains 4,595 frontend
+files and two preserved embed files.
+
+The full release gate remains blocked by the locked release-authority audit
+described in the previous receipt. This is a running visual preview, not a
+release-audited build. No trunk merge or release ledger update was performed.
+
+![Broader furniture and sharp walls in the running station](live-proportions.jpg)

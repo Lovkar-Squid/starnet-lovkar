@@ -10673,6 +10673,16 @@ const PropSprites = (() => {
     { id: "recliner_r", label: "RECLINER RIGHT ›", cat: "lounge", tier: "cosmetic", w: 1, h: 1, animated: false, blocks: true, use: { kind: 'couch', sit: false, approach: 'east' } },
   ];
   const BY_ID = {};
+  // This preview's wider art occupies three real tiles; picking, placement and
+  // navigation must reserve the same width as the visible console.
+  if (typeof IndustrialTextures !== 'undefined') {
+    const fitIndustrialDesks = () => {
+      if (IndustrialTextures.enabled())
+        for (const c of CATALOG) if (c.id === 'desk' || c.id === 'desk2') c.w = 3;
+    };
+    fitIndustrialDesks();
+    IndustrialTextures.ready.then(fitIndustrialDesks);
+  }
   for (const c of CATALOG) BY_ID[c.id] = c;
   const CATS = CATALOG.reduce((o, c) => { (o[c.cat] = o[c.cat] || []).push(c); return o; }, {});
 

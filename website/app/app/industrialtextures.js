@@ -11,12 +11,13 @@ const IndustrialTextures = (() => {
   // Exposed to the existing CRT lab for a live, reproducible material review.
   const lighting = { fixtureTint: .04 };
   const plates = new WeakMap();
+  const detailTargets = new WeakMap(), wallStrips = new Map();
   let loaded = false;
   const names = ['floor', 'wall', 'shell', 'workstation', 'chair-s', 'chair-e', 'chair-n'];
   // The references are already lit pictures. These measured albedo gains keep
   // the existing light simulation from applying a second exposure to the art.
-  const gain = { floor: 1.25, wall: 2.4, shell: 2.05, workstation: 1.5,
-    'chair-s': 1.8, 'chair-e': 1.8, 'chair-n': 1.8 };
+  const gain = { floor: 1.25, wall: 1.65, shell: 2.05, workstation: 1.5,
+    'chair-s': 1.3, 'chair-e': 1.3, 'chair-n': 1.3 };
   const ready = requested && typeof Image !== 'undefined' ? Promise.all(names.map(name => new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -42,7 +43,7 @@ const IndustrialTextures = (() => {
   // Only the final visible blit uses the denser plate; simulation units stay 12px.
   function detailContext(ctx) {
     if (!enabled()) return ctx;
-    const source = ctx.canvas, scale = Math.min(3, 4096 / Math.max(source.width, source.height));
+    const source = ctx.canvas, scale = Math.min(6, 4096 / Math.max(source.width, source.height));
     if (scale < 1.5) return ctx;
     const cv = document.createElement('canvas'); cv.width = Math.ceil(source.width * scale); cv.height = Math.ceil(source.height * scale);
     const g = cv.getContext('2d'), transform = ctx.getTransform();
@@ -52,11 +53,23 @@ const IndustrialTextures = (() => {
     plates.set(source, cv);
     if (cv.addEventListener) cv.addEventListener('contextlost', () => plates.delete(source), { once: true });
     document.documentElement.dataset.textureResolution = String(scale);
-    return new Proxy(ctx, {
+    const proxy = new Proxy(ctx, {
       set(target, key, value) { target[key] = value; g[key] = paintObjects.get(value) || value; return true; },
       get(target, key) {
         const value = target[key]; if (typeof value !== 'function') return value;
         if (['getImageData', 'getTransform', 'measureText', 'isPointInPath', 'isPointInStroke', 'getContextAttributes'].includes(key)) return value.bind(target);
+        if (key === 'drawImage') return (im, ...args) => {
+          const result = target.drawImage(im, ...args), hi = plates.get(im);
+          if (!hi) g.drawImage(im, ...args);
+          else if (args.length === 2) g.drawImage(hi, ...args, im.width, im.height);
+          else if (args.length === 4) g.drawImage(hi, ...args);
+          else {
+            const [sx, sy, sw, sh, ...dest] = args;
+            g.drawImage(hi, sx * hi.width / im.width, sy * hi.height / im.height,
+              sw * hi.width / im.width, sh * hi.height / im.height, ...dest);
+          }
+          return result;
+        };
         if (key === 'setTransform' || key === 'resetTransform') return (...args) => {
           value.apply(target, args);
           const m = target.getTransform();
@@ -76,6 +89,8 @@ const IndustrialTextures = (() => {
         return (...args) => { const result = value.apply(target, args); g[key](...args); return result; };
       }
     });
+    detailTargets.set(proxy, { g, scale });
+    return proxy;
   }
   function drawBase(ctx, cv, x = 0, y = 0) {
     const hi = enabled() && plates.get(cv);
@@ -98,8 +113,35 @@ const IndustrialTextures = (() => {
     // One structural bay spans four game tiles. This matches the side/corner
     // face-strip period, so the same material wraps without an extra seam.
     ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(im, mod(tx, 4) * im.width / 16, 0, im.width / 16, im.height, X, Y, width, height);
+    ctx.drawImage(im, mod(tx, 4) * im.width / 4, 0, im.width / 4, im.height, X, Y, width, height);
     ctx.restore(); return true;
+  }
+  function wallStrip(height) {
+    if (!enabled()) return null;
+    if (wallStrips.has(height)) return wallStrips.get(height);
+    const render = scale => {
+      const cv = document.createElement('canvas'); cv.width = 48 * scale; cv.height = height * scale;
+      const g = cv.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.drawImage(images.wall, 0, 0, cv.width, cv.height);
+      return { d: g.getImageData(0, 0, cv.width, cv.height).data, w: cv.width, h: cv.height };
+    };
+    const strip = { ...render(1), x0: 0, hi: { ...render(6), scale: 6 } };
+    wallStrips.set(height, strip); return strip;
+  }
+  function wallPatch(ctx, x, y, w, h, strip, map) {
+    const target = enabled() && detailTargets.get(ctx);
+    if (!target || !strip || !strip.hi) return;
+    const { g, scale } = target, hi = strip.hi, step = 1 / Math.ceil(scale);
+    g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+    for (let yy = y; yy < y + h - 1e-8; yy += step) for (let xx = x; xx < x + w - 1e-8; xx += step) {
+      const m = map(xx + step / 2 - .5, yy + step / 2 - .5);
+      const sx = Math.floor(mod(m.a + .5, strip.w) * hi.scale);
+      const sy = Math.max(0, Math.min(hi.h - 1, Math.floor(m.d * hi.scale)));
+      const i = (sy * hi.w + sx) * 4, d = hi.d;
+      g.fillStyle = 'rgb(' + d[i] + ',' + d[i+1] + ',' + d[i+2] + ')';
+      g.fillRect(xx, yy, Math.min(step, x + w - xx), Math.min(step, y + h - yy));
+    }
+    g.restore();
   }
   function shell(ctx, width, height, vx, vy, topOf) {
     if (!enabled()) return false;
@@ -133,8 +175,8 @@ const IndustrialTextures = (() => {
   function workstation(ctx, x, y, w, h) {
     if (!enabled()) return false;
     // Fit without stretching: footprint controls width, ground contact controls
-    // the bottom. The compact operator console has its own correctly sized art.
-    const im = images.workstation, scale = Math.min((w + 2) / im.width, (h + 14) / im.height);
+    // the bottom. The broad operator console has its own correctly sized art.
+    const im = images.workstation, scale = Math.min((w + 2) / im.width, (h + 11.5) / im.height);
     const dw = im.width * scale, dh = im.height * scale;
     ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
@@ -148,7 +190,7 @@ const IndustrialTextures = (() => {
     ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
     ctx.restore(); return true;
   }
-  return Object.freeze({ ready, enabled, lighting, detailContext, drawBase, floor, wall, shell, shellPlate, workstation, chair,
+  return Object.freeze({ ready, enabled, lighting, detailContext, drawBase, floor, wall, wallStrip, wallPatch, shell, shellPlate, workstation, chair,
     status: () => ({ requested, loaded, failed: failed.slice(), assets: Object.keys(images) }) });
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = IndustrialTextures;

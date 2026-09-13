@@ -9,9 +9,9 @@ recessed fasteners and service channels, muted brass, and cyan workstation scree
 The seven generated assets live in `frontend/assets/industrial/`: `floor.png`,
 `wall.png`, `shell.png`, `workstation.png`, and the three `chair-*.png` facings. Exact built-in imagegen prompts are
 recorded in [PROMPTS.md](PROMPTS.md). The original masters remain in the local
-imagegen output directory. The packaging script records their filenames, resizes
-the material masters. `prepare-furniture.cjs` crops the new genuine-alpha console
-and three chair views without changing their colours or silhouettes.
+imagegen output directory. `prepare-proportions.cjs` packages the current wall,
+wide console and broad chair views. It removes the generated connected background
+matte, trims the sprites and resizes them without stretching their silhouettes.
 
 This pass is a separate running visual edition, enabled by `?textures=industrial`.
 It replaces floor and wall painting, the default station shell, and the desk/dual
@@ -20,17 +20,20 @@ orientations and their mirrors. The 22 × 18 command deck has three actual works
 one assigned to NOVA, and two placeable chairs at the side desks. Other furniture
 families (including diner and pod chairs) and characters remain outside this pass.
 
-The single-operator console replaces the squeezed three-screen study. Its art
-retains its source aspect ratio, stays within the existing two-tile desk width,
-and contacts the original floor line. Chairs use black upholstery, worn brass,
+The broad single-operator console occupies three actual tiles instead of two.
+Its art retains its source aspect ratio and approximately 23.3 world-pixel height,
+and contacts the original floor line. The side chairs are centered under their
+desks. Chairs retain their 16-pixel height with broader seats and armrests,
+black upholstery, worn brass,
 and the same source pixels for occupied-seat rims. The industrial lighting's
 fixture tint is 0.04, live-compared in the CRT lab against the previous 0.16 wash.
 The ordinary edition retains its original lighting.
 
-The floor and north-wall art uses a cached visual plate at up to 3× resolution.
+The floor, walls, corners and shell use cached visual plates at up to 6× resolution.
 The existing base canvas remains authoritative for geometry, occlusion, picking,
-lights and masks. Side/corner sampling and exterior shell masking retain their
-existing pixel scale. Refit uses the same material art. All seven assets must load
+lights and masks. A single broad wall bay wraps around the corners at matching
+resolution. Nested shell layers preserve the detailed art through their original
+ownership masks. Refit uses the same material art. All seven assets must load
 before the pack activates; a missing asset retains the complete original look.
 
 This local preview has no provider credentials configured. The station renderer,
@@ -39,4 +42,4 @@ a provider in this preview. The installed desktop application is a separate buil
 
 Verification receipts are in [VERIFICATION.md](VERIFICATION.md).
 
-![Running industrial station with corrected furniture](live-furniture.jpg)
+![Running industrial station with broader furniture and sharper walls](live-proportions.jpg)

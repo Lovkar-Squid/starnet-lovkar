@@ -56,6 +56,11 @@ async function load(search, broken = false) {
     U: { hash: s => String(s).split('').reduce((h,c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0, shade: c => c } };
   vm.runInNewContext(fs.readFileSync(path.join(root, 'frontend/app/propsprites.js'), 'utf8'), propContext);
   const props = propContext.module.exports, facings = new Set();
+  for (const fallback of [normal, missing]) {
+    const fallbackContext={ ...propContext, IndustrialTextures:fallback, module:{exports:{}} };
+    vm.runInNewContext(fs.readFileSync(path.join(root,'frontend/app/propsprites.js'),'utf8'),fallbackContext);
+    assert.equal(fallbackContext.module.exports.spec('desk').w,2,'fallback retains original catalogue dimensions');
+  }
   for (let r = 0; r < 4; r++) for (let m = 0; m < 2; m++) {
     const full = createCanvas(36, 40), front = createCanvas(36, 40);
     const f = { t: 'chair', x: 1, y: 1, w: 1, h: 1, r, m: !!m };
@@ -69,12 +74,48 @@ async function load(search, broken = false) {
   }
   assert.ok(facings.size >= 4, 'four distinct chair views');
   const calls = [], spy = { save() {}, restore() {}, drawImage(...args) { calls.push(args); } };
-  pack.workstation(spy, 12, 12, 24, 12);
+  assert.equal(props.spec('desk').w, 3, 'new industrial desk has its real three-tile footprint');
+  assert.equal(props.spec('desk2').w, 3);
+  pack.workstation(spy, 12, 12, 36, 12);
   const [im, dx, dy, dw, dh] = calls[0];
   assert.ok(Math.abs(dw / dh - im.width / im.height) < 1e-8, 'no workstation stretching');
   assert.equal(dy + dh, 24, 'desk contacts its original floor line');
-  assert.ok(dx >= 11 && dx + dw <= 37, 'desk fits its existing footprint');
+  assert.ok(dx >= 11 && dx + dw <= 49, 'desk fits its new footprint');
+  assert.ok(dw >= 37 && dh >= 23 && dh <= 23.5, 'broader console retains approved height');
+  const strip = pack.wallStrip(39);
+  assert.equal(strip.hi.w, strip.w * 6);
+  assert.equal(strip.hi.h, strip.h * 6);
+  const wall = createCanvas(60, 48), base = wall.getContext('2d'), dense = pack.detailContext(base);
+  dense.fillStyle = '#444'; dense.fillRect(4, 4, 48, 39);
+  const before = base.getImageData(0, 0, 60, 48).data;
+  pack.wallPatch(dense, 4, 4, 48, 39, strip, (x,y) => ({ a:x-4, d:y-4+.5 }));
+  assert.deepEqual(base.getImageData(0, 0, 60, 48).data, before, 'detailed side/corner art leaves geometry authority untouched');
+  const visible = createCanvas(60, 48), vg = visible.getContext('2d');
+  pack.drawBase(vg, wall);
+  for (let y=0;y<48;y++) for(let x=0;x<60;x++)
+    assert.equal(alpha(base,x,y)>127, alpha(vg,x,y)>127, 'wall patch silhouette at '+x+','+y);
+  // A straight projection through the corner sampler must reproduce the north
+  // wall's bay, instead of magnifying a 48px colour strip into blurry blocks.
+  const straight = createCanvas(60,48), sg=pack.detailContext(straight.getContext('2d'));
+  for(let i=0;i<4;i++) pack.wall(sg,4+i*12,4,12,39,i);
+  const northView = createCanvas(60,48); pack.drawBase(northView.getContext('2d'),straight);
+  let error=0,count=0;
+  const projected=vg.getImageData(4,4,48,39).data, north=northView.getContext('2d').getImageData(4,4,48,39).data;
+  for(let i=0;i<projected.length;i++) if(i%4!==3) {error+=Math.abs(projected[i]-north[i]);count++;}
+  assert.ok(error/count<12, 'straight and wrapped walls agree in tone and UV phase; mean error '+error/count);
+  // The shell passes through nested source-atop / destination-in canvases. Its
+  // dense art must survive each blit while low-resolution masks stay unchanged.
+  for (const args of [[0,0], [0,0,60,48], [0,0,60,48,0,0,60,48]]) {
+    const layer=createCanvas(60,48), lg=pack.detailContext(layer.getContext('2d'));
+    lg.fillStyle='#fff'; lg.fillRect(0,0,60,48);
+    lg.globalCompositeOperation='source-atop'; lg.drawImage(straight,...args);
+    lg.globalCompositeOperation='destination-in'; lg.drawImage(straight,0,0);
+    const output=createCanvas(60,48); pack.drawBase(output.getContext('2d'),layer);
+    assert.deepEqual(output.getContext('2d').getImageData(0,0,60,48).data,
+      northView.getContext('2d').getImageData(0,0,60,48).data,'nested shell retains detailed art and mask');
+  }
   console.log(JSON.stringify({ assets: pack.status(), alphaSamples: samples, chairOrientations: 8,
     seatFrontPixelMatch: 'PASS', workstationAspect: 'PASS', floorContact: 'PASS',
+    wallGeometry: 'PASS', shellDetailAndMasks: 'PASS', wallContinuityMeanError: +(error/count).toFixed(2),
     worldAnchor: 'PASS', missingAssetFallback: 'PASS', normalRenderer: 'PASS' }));
 })().catch(err => { console.error(err); process.exitCode = 1; });
