@@ -2839,3 +2839,5 @@ Every first-time StarNet-subscription desktop user: link → shell adopts the to
 - 2026-09-12: agent/industrial-textures-0912 -> trunk 0d1e015e9; reference industrial materials now default, wider desks/chairs and sharp wall/corner/shell art. Pre-merge fast 771/771 GREEN; combined trunk f8ddd9c36 post-merge CI fast 772/772 and customer journeys 34/34 GREEN. Default seeded station, Refit placement/undo, save/restart and browser checks verified. See qa/digests/2026-09-12-industrial-textures.md. Installed desktop not rebuilt.
 
 - 2026-09-12 — Command bridge: agent/industrial-textures-0912 integrated at f56aebb6e; pre/post-merge test:fast 772/772 green; live placement, undo, save/restart and 309-tile navigation verified. [Receipt](../docs/industrial-textures/VERIFICATION.md).
+
+- 2026-09-13 UTC: agent/website-nav-font-0913 -> trunk fa85f521f by exact fast-forward; exact candidate fast 772/772 and customer journeys 34/34 GREEN. Restored VT323 terminal navigation typography, verified 16 responsive page/width combinations, and published to starnetos.com (Cloudflare 40aa7c3e). Live public font confirmed. Receipt: qa/digests/2026-09-13-website-navigation-font.md.
