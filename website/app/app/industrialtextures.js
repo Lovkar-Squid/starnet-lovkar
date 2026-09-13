@@ -1,22 +1,23 @@
-/* StarNet industrial material study, September 2026.
+/* StarNet reference-authored industrial materials, September 2026.
  * Image-authored albedo; geometry, lighting, seats and live activity remain owned
- * by the station renderer. Enable the review build with ?textures=industrial.
+ * by the station renderer. The industrial set is the default; ?textures=classic
+ * retains the original renderer for comparison and recovery.
  * A failed or pending asset keeps the complete existing material set visible.
  */
 'use strict';
 const IndustrialTextures = (() => {
-  let requested = false;
-  try { requested = new URLSearchParams(location.search).get('textures') === 'industrial'; } catch (_) {}
+  let requested = true;
+  try { requested = new URLSearchParams(location.search).get('textures') !== 'classic'; } catch (_) {}
   const images = {}, failed = [];
   // Exposed to the existing CRT lab for a live, reproducible material review.
   const lighting = { fixtureTint: .04 };
   const plates = new WeakMap();
   const detailTargets = new WeakMap(), wallStrips = new Map();
   let loaded = false;
-  const names = ['floor', 'wall', 'shell', 'workstation', 'chair-s', 'chair-e', 'chair-n'];
+  const names = ['floor', 'wall', 'shell', 'workstation', 'workstation-compact', 'chair-s', 'chair-e', 'chair-n'];
   // The references are already lit pictures. These measured albedo gains keep
   // the existing light simulation from applying a second exposure to the art.
-  const gain = { floor: 1.25, wall: 1.65, shell: 2.05, workstation: 1.5,
+  const gain = { floor: 1.25, wall: 1.65, shell: 2.05, workstation: 1.5, 'workstation-compact': 1.5,
     'chair-s': 1.3, 'chair-e': 1.3, 'chair-n': 1.3 };
   const ready = requested && typeof Image !== 'undefined' ? Promise.all(names.map(name => new Promise(resolve => {
     const img = new Image();
@@ -176,7 +177,10 @@ const IndustrialTextures = (() => {
     if (!enabled()) return false;
     // Fit without stretching: footprint controls width, ground contact controls
     // the bottom. The broad operator console has its own correctly sized art.
-    const im = images.workstation, scale = Math.min((w + 2) / im.width, (h + 11.5) / im.height);
+    // Saved two-tile desks keep their layout and height using the matching
+    // compact body. Newly placed three-tile desks use the approved broad body.
+    const im = images[w < 30 ? 'workstation-compact' : 'workstation'];
+    const scale = Math.min((w + 2) / im.width, (h + 11.5) / im.height);
     const dw = im.width * scale, dh = im.height * scale;
     ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);

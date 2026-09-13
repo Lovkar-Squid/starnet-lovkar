@@ -20,7 +20,7 @@ async function load(search, broken = false) {
   return context.module.exports;
 }
 (async () => {
-  const pack = await load('?textures=industrial');
+  const pack = await load('');
   assert.equal(pack.enabled(), true);
   const cv = createCanvas(80, 80), raw = cv.getContext('2d');
   raw.translate(7, 9);
@@ -47,7 +47,7 @@ async function load(search, broken = false) {
   assert.deepEqual(a.getContext('2d').getImageData(0, 0, 24, 12).data, b.getContext('2d').getImageData(0, 0, 24, 12).data);
   const missing = await load('?textures=industrial', true);
   assert.equal(missing.enabled(), false); assert.equal(missing.status().failed[0], 'wall');
-  const normal = await load(''); assert.equal(normal.enabled(), false);
+  const normal = await load('?textures=classic'); assert.equal(normal.enabled(), false);
   assert.equal(normal.detailContext(raw), raw);
   // Verify real prop integration: every facing uses its own art, occupied chair
   // rims match those pixels exactly, and the desk preserves its image aspect.
@@ -82,6 +82,11 @@ async function load(search, broken = false) {
   assert.equal(dy + dh, 24, 'desk contacts its original floor line');
   assert.ok(dx >= 11 && dx + dw <= 49, 'desk fits its new footprint');
   assert.ok(dw >= 37 && dh >= 23 && dh <= 23.5, 'broader console retains approved height');
+  pack.workstation(spy,12,12,24,12);
+  const [legacy,lx,ly,lw,lh]=calls[1];
+  assert.ok(lw <= 26 && lh >= 23 && lh <= 23.5, 'saved two-tile desks retain height within their footprint');
+  assert.ok(Math.abs(lw/lh-legacy.width/legacy.height)<1e-8);
+  assert.equal(ly+lh,24);
   const strip = pack.wallStrip(39);
   assert.equal(strip.hi.w, strip.w * 6);
   assert.equal(strip.hi.h, strip.h * 6);

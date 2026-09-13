@@ -10673,7 +10673,7 @@ const PropSprites = (() => {
     { id: "recliner_r", label: "RECLINER RIGHT ›", cat: "lounge", tier: "cosmetic", w: 1, h: 1, animated: false, blocks: true, use: { kind: 'couch', sit: false, approach: 'east' } },
   ];
   const BY_ID = {};
-  // This preview's wider art occupies three real tiles; picking, placement and
+  // The wider industrial art occupies three real tiles; picking, placement and
   // navigation must reserve the same width as the visible console.
   if (typeof IndustrialTextures !== 'undefined') {
     const fitIndustrialDesks = () => {
