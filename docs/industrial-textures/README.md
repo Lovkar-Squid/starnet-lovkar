@@ -6,9 +6,10 @@ The launcher uses `node dev/seed.js --keep` with an isolated scratch station.
 
 The two supplied reference images are the sole art direction: worn charcoal steel,
 recessed fasteners and service channels, muted brass, and cyan workstation screens.
-The eight generated assets live in `frontend/assets/industrial/`: `floor.png`,
+The twelve generated assets live in `frontend/assets/industrial/`: `floor.png`,
 `wall.png`, `shell.png`, `workstation.png`, `workstation-compact.png`, and the three
-`chair-*.png` facings. Exact built-in imagegen prompts are
+`chair-*.png` facings, plus `tactical-table.png`, `console-bank.png`,
+`equipment-bay.png` and `deck-perimeter.png`. Exact built-in imagegen prompts are
 recorded in [PROMPTS.md](PROMPTS.md). The original masters remain in the local
 imagegen output directory. `prepare-proportions.cjs` packages the current wall,
 wide console and broad chair views. It removes the generated connected background
@@ -18,8 +19,14 @@ The industrial materials now load by default. `?textures=classic` retains the
 original renderer for comparison; the former `?textures=industrial` URL still works.
 It replaces floor and wall painting, the default station shell, and the desk/dual
 desk artwork, automatic workstation seats, and placeable office chairs in all four
-orientations and their mirrors. The 22 × 18 command deck has three actual workstations,
-one assigned to NOVA, and two placeable chairs at the side desks. Other furniture
+orientations and their mirrors. The 22 × 18 command deck has five actual workstations,
+one assigned to NOVA, six placeable chairs, two contiguous north-wall console banks,
+a central tactical table, four equipment bays and a walkable hazard perimeter.
+The four new designs are available in Refit's decoration catalog. Their displays
+are decorative navigation art, not live harness telemetry; they grant no tools.
+The console banks require a north wall. Their saved footprints are 9 × 1 tiles;
+the table is 7 × 4, cabinets 4 × 1, and floor perimeter 12 × 8.
+All 309 free deck tiles in this composition remain reachable. Other furniture
 families (including diner and pod chairs) and characters remain outside this pass.
 
 Newly placed broad single-operator consoles occupy three actual tiles instead of two.
@@ -37,7 +44,7 @@ The floor, walls, corners and shell use cached visual plates at up to 6× resolu
 The existing base canvas remains authoritative for geometry, occlusion, picking,
 lights and masks. A single broad wall bay wraps around the corners at matching
 resolution. Nested shell layers preserve the detailed art through their original
-ownership masks. Refit uses the same material art. All eight assets must load
+ownership masks. Refit uses the same material art. All twelve assets must load
 before the pack activates; a missing asset retains the complete original look.
 
 This local preview has no provider credentials configured. The station renderer,
@@ -46,4 +53,9 @@ a provider in this preview. The installed desktop application is a separate buil
 
 Verification receipts are in [VERIFICATION.md](VERIFICATION.md).
 
-![Running industrial station with broader furniture and sharper walls](live-proportions.jpg)
+The command-deck composition only changes this isolated preview, not customer
+saves. `command-deck.cjs` is the reproducible layout; the launcher preserves any
+existing saved station. [BRIDGE_PROMPTS.md](BRIDGE_PROMPTS.md) records the new
+built-in imagegen prompts. `prepare-bridge.cjs` packages the transparent masters.
+
+![Running industrial command bridge](live-command-deck.jpg)

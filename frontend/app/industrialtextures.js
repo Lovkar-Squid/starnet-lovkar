@@ -14,11 +14,13 @@ const IndustrialTextures = (() => {
   const plates = new WeakMap();
   const detailTargets = new WeakMap(), wallStrips = new Map();
   let loaded = false;
-  const names = ['floor', 'wall', 'shell', 'workstation', 'workstation-compact', 'chair-s', 'chair-e', 'chair-n'];
+  const names = ['floor', 'wall', 'shell', 'workstation', 'workstation-compact', 'chair-s', 'chair-e', 'chair-n',
+    'tactical-table', 'console-bank', 'equipment-bay', 'deck-perimeter'];
   // The references are already lit pictures. These measured albedo gains keep
   // the existing light simulation from applying a second exposure to the art.
   const gain = { floor: 1.25, wall: 1.65, shell: 2.05, workstation: 1.5, 'workstation-compact': 1.5,
-    'chair-s': 1.3, 'chair-e': 1.3, 'chair-n': 1.3 };
+    'chair-s': 1.3, 'chair-e': 1.3, 'chair-n': 1.3,
+    'tactical-table': 1.5, 'console-bank': 1.5, 'equipment-bay': 1.5, 'deck-perimeter': 1.0 };
   const ready = requested && typeof Image !== 'undefined' ? Promise.all(names.map(name => new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -194,7 +196,26 @@ const IndustrialTextures = (() => {
     ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
     ctx.restore(); return true;
   }
+  // Larger command furniture has real catalog footprints. Its transparent
+  // artwork is contained within that width and anchored to the floor line,
+  // just like the desk; no baked room, floor, or decorative cast shadow.
+  function furniture(ctx, name, x, y, w, h) {
+    if (!enabled() || !images[name]) return false;
+    if (name === 'deck-perimeter') {
+      // Floor paint follows the actual decal rectangle, including quarter turns.
+      // Its transparent middle preserves the deck texture and allows furnishings.
+      ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(images[name], x, y, w, h); ctx.restore(); return true;
+    }
+    const im = images[name], rise = name === 'console-bank' ? 30 : 12;
+    const scale = Math.min(w / im.width, (h + rise) / im.height);
+    const dw = im.width * scale, dh = im.height * scale;
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(im, x + (w - dw) / 2, y + h - dh, dw, dh);
+    ctx.restore(); return true;
+  }
   return Object.freeze({ ready, enabled, lighting, detailContext, drawBase, floor, wall, wallStrip, wallPatch, shell, shellPlate, workstation, chair,
+    furniture,
     status: () => ({ requested, loaded, failed: failed.slice(), assets: Object.keys(images) }) });
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = IndustrialTextures;

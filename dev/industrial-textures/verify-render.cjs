@@ -87,6 +87,43 @@ async function load(search, broken = false) {
   assert.ok(lw <= 26 && lh >= 23 && lh <= 23.5, 'saved two-tile desks retain height within their footprint');
   assert.ok(Math.abs(lw/lh-legacy.width/legacy.height)<1e-8);
   assert.equal(ly+lh,24);
+  // New bridge furniture must reserve its visible width and remain grounded.
+  for (const [id, name] of [['bridge_consolebank','console-bank'], ['bridge_tacticaltable','tactical-table'], ['bridge_equipmentbay','equipment-bay']]) {
+    const s=props.spec(id), draws=[], painter={save(){},restore(){},drawImage(...args){draws.push(args);}};
+    pack.furniture(painter,name,12,36,s.w*12,s.h*12);
+    const [art,px,py,pw,ph]=draws[0];
+    assert.equal(py+ph,36+s.h*12,id+' grounded');
+    assert.ok(px>=12 && px+pw<=12+s.w*12+1e-8,id+' does not spill into adjacent tiles');
+    assert.ok(pw>=s.w*12*.95,id+' fills its footprint');
+    assert.ok(Math.abs(pw/ph-art.width/art.height)<1e-8,id+' keeps source proportions');
+    assert.equal(s.tier,'cosmetic',id+' does not claim tools');
+  }
+  for (const edition of [pack,normal,missing]) {
+    const env={...propContext,IndustrialTextures:edition,module:{exports:{}}};
+    vm.runInNewContext(fs.readFileSync(path.join(root,'frontend/app/propsprites.js'),'utf8'),env);
+    const sprites=env.module.exports;
+    for (const id of ['bridge_consolebank','bridge_tacticaltable','bridge_equipmentbay','bridge_deckperimeter']) {
+      const s=sprites.spec(id),c=createCanvas(192,192);
+      sprites.setCtx(c.getContext('2d')); sprites.draw({t:id,x:2,y:4,w:s.w,h:s.h},false);
+      assert.ok(c.getContext('2d').getImageData(0,0,192,192).data.some(v=>v),id+' has art even when textures fail');
+      if (s.flat) assert.equal(alpha(c.getContext('2d'),24+s.w*6,48+s.h*6),0,'perimeter center is transparent');
+    }
+  }
+  const wm=require(path.join(root,'frontend/app/worldmodel.js'));
+  wm.setPropRules(props.spec);
+  const station=wm.defaultDoc();
+  station.rooms.r1.rects=[{x1:0,y1:0,x2:21,y2:17}];
+  station.props=require('./command-deck.cjs')();
+  const model=wm.deserialize(station);
+  for (const p of station.props) assert.equal(model.canPlaceProp(p.t,p.x,p.y,p.w,p.h,p.id).ok,true,'valid preview placement '+p.id);
+  assert.equal(model.canPlaceProp('bridge_consolebank',2,2,9,1).error,'NEEDS_WALL','bank requires its actual north wall');
+  const geometry=model.projectGeometry(),ox=geometry.origin.tx,oy=geometry.origin.ty;
+  let reachable=0;
+  for(let y=0;y<18;y++) for(let x=0;x<22;x++) if(geometry.walkable(x-ox,y-oy)) {
+    assert.ok(geometry.path(11-ox,16-oy,x-ox,y-oy),'all free deck remains reachable at '+x+','+y);reachable++;
+  }
+  assert.ok(geometry.walkable(5-ox,8-oy),'perimeter stripe is walkable');
+  assert.equal(geometry.walkable(10-ox,8-oy),false,'table footprint blocks walking');
   const strip = pack.wallStrip(39);
   assert.equal(strip.hi.w, strip.w * 6);
   assert.equal(strip.hi.h, strip.h * 6);
@@ -122,5 +159,6 @@ async function load(search, broken = false) {
   console.log(JSON.stringify({ assets: pack.status(), alphaSamples: samples, chairOrientations: 8,
     seatFrontPixelMatch: 'PASS', workstationAspect: 'PASS', floorContact: 'PASS',
     wallGeometry: 'PASS', shellDetailAndMasks: 'PASS', wallContinuityMeanError: +(error/count).toFixed(2),
-    worldAnchor: 'PASS', missingAssetFallback: 'PASS', normalRenderer: 'PASS' }));
+    worldAnchor: 'PASS', missingAssetFallback: 'PASS', normalRenderer: 'PASS', bridgeFootprints: 'PASS',
+    bridgeFallbacks: 'PASS', perimeterAlpha: 'PASS', reachableDeckTiles: reachable }));
 })().catch(err => { console.error(err); process.exitCode = 1; });

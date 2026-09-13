@@ -10427,6 +10427,21 @@ const PropSprites = (() => {
                  agent can lounge at (couch/tv/arcade/…). world.js derives the approach
                  tile via propanchor.js; sit=true seats the agent, approach biases the side. */
   /* short Fallout-style blurbs for the hover card (functional props). Reused where the effect is identical. */
+  // Command-deck scenery stays in DECOR: these screens depict navigation art,
+  // not harness telemetry. Existing workstations still own agent assignments.
+  const bridgeFurniture = (name, fallback) => (x, y, w, h, f) => {
+    if (typeof IndustrialTextures !== 'undefined' && IndustrialTextures.furniture(ctx, name, x, y, w, h)) return;
+    fallback(x, y, w, h, f);
+  };
+  F.bridge_consolebank = bridgeFurniture('console-bank', F.consoleL);
+  F.bridge_tacticaltable = bridgeFurniture('tactical-table', F.wartable);
+  F.bridge_equipmentbay = bridgeFurniture('equipment-bay', F.rack);
+  F.bridge_deckperimeter = bridgeFurniture('deck-perimeter', (x, y, w, h, f) => {
+    // Classic fallback is the existing floor paint confined to a narrow ring.
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.rect(x + 2, y + 2, w - 4, h - 4); ctx.clip('evenodd');
+    try { F.hazardpad(x, y, w, h, f); } finally { ctx.restore(); }
+  });
+
   const D_WS = 'WORKSTATION — assign an agent here and it walks over and sits to work whenever it gets a task.';
   const D_FILES = 'CAPABILITY — gives the agent in this room file access (read & write its own files).';
   const D_WEB = 'CAPABILITY — gives the agent in this room web access (live search & fetch).';
@@ -10501,6 +10516,10 @@ const PropSprites = (() => {
 
     /* ===================== COSMETIC ===================== */
     // SCREENS — ops & display dressing.
+    { id: "bridge_consolebank", label: "BRIDGE CONSOLE BANK", cat: "screens", tier: "cosmetic", w: 9, h: 1, animated: false, blocks: true, mount: 'wall', desc: "Decorative instrument bank with cyan navigation displays. Fits against a north wall; grants no tools." },
+    { id: "bridge_tacticaltable", label: "TACTICAL TABLE", cat: "screens", tier: "cosmetic", w: 7, h: 4, animated: false, blocks: true, desc: "Decorative octagonal navigation table in worn steel and dark cyan glass." },
+    { id: "bridge_equipmentbay", label: "EQUIPMENT BAY", cat: "storage", tier: "cosmetic", w: 4, h: 1, animated: false, blocks: true, desc: "Decorative armored equipment cabinet with brass handles and recessed instruments." },
+    { id: "bridge_deckperimeter", label: "DECK PERIMETER", cat: "decor", tier: "cosmetic", w: 12, h: 8, animated: false, blocks: false, flat: true, desc: "Worn hazard perimeter painted on the deck. Walkable; furniture may stand inside or across it." },
     { id: "bigscreen", label: "BIG SCREEN", cat: "screens", tier: "cosmetic", w: 8, h: 1, animated: true, blocks: false },
     { id: "holotable", label: "HOLOTABLE", cat: "screens", tier: "cosmetic", w: 4, h: 2, animated: true, blocks: true },
     { id: "screens", label: "SCREENS", cat: "screens", tier: "cosmetic", w: 2, h: 1, animated: true, blocks: false },
@@ -10786,7 +10805,7 @@ const PropSprites = (() => {
   const NO_MIRROR = [
     'missionboard', 'trophycase', 'calwall', 'ticker',                                   // text
     'comms_dish', 'safe', 'vault', 'studio', 'bigscreen', 'holotable', 'chartwall',      // path
-    'wartable', 'bridge_tacscreen', 'bridge_orderqueue', 'war_threatcore', 'vat',
+    'wartable', 'bridge_tacticaltable', 'bridge_consolebank', 'bridge_tacscreen', 'bridge_orderqueue', 'war_threatcore', 'vat',
     'research_corelens', 'research_trendpillar', 'etsy_dyevat', 'etsy_kiln',
     'gigs_thumbwall', 'gigs_amp', 'pub_outboundchute', 'treasury_pnl_holo',
     'intake', 'bay', 'outbox', 'filter', 'merger', 'splitter', 'joiner', 'loop', 'beltH', // flow
@@ -11302,6 +11321,8 @@ const PropSprites = (() => {
     screens: { c: BLUE_RGB, r: 24, a: 0.12, m: 'screen', y: 0.35 }, tank: { c: [80, 200, 220], r: 22, a: 0.12, m: 'pulse', y: 0.45 },
     ticker: { c: AMBER_RGB, r: 26, a: 0.10, m: 'screen', y: 0.35 }, chartwall: { c: BLUE_RGB, r: 26, a: 0.10, m: 'screen', y: 0.35 },
     wartable: { c: [120, 200, 255], r: 34, a: 0.12, m: 'screen', y: 0.45 }, calwall: { c: BLUE_RGB, r: 30, a: 0.10, m: 'screen', y: 0.35 },
+    bridge_consolebank: { c: [80, 180, 190], r: 40, a: 0.08, m: 'steady', y: 0.1 },
+    bridge_tacticaltable: { c: [80, 180, 190], r: 42, a: 0.10, m: 'steady', y: 0.45 },
     bridge_tacscreen: { c: BLUE_RGB, r: 24, a: 0.12, m: 'screen', y: 0.35 }, bridge_dispatch_pylon: { c: AMBER_RGB, r: 22, a: 0.12, m: 'pulse', y: 0.3 },
     bridge_orderqueue: { c: AMBER_RGB, r: 22, a: 0.10, m: 'screen', y: 0.35 }, war_pivotpanel: { c: BLUE_RGB, r: 22, a: 0.10, m: 'screen', y: 0.35 },
     war_threatcore: { c: [255, 90, 80], r: 26, a: 0.14, m: 'pulse', y: 0.3 },
