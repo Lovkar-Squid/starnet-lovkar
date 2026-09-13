@@ -120,7 +120,7 @@ application update, release claim, or provider/model run was performed.
 
 ![Furniture revision in the running station](live-furniture.jpg)
 
-## Proportions and wall continuity — September 12, current receipt
+## Proportions and wall continuity — September 12, previous receipt
 
 Done for this revision means the running station shows broader furniture at the
 previous height, centered chairs, and sharp wall art that continues around the
@@ -162,3 +162,33 @@ described in the previous receipt. This is a running visual preview, not a
 release-audited build. No trunk merge or release ledger update was performed.
 
 ![Broader furniture and sharp walls in the running station](live-proportions.jpg)
+
+## Default integration — September 12, current receipt
+
+The owner requested implementation. Industrial materials now load at the normal
+URL, `http://127.0.0.1:18792/`, without a query flag. The eight-asset set includes
+a compact body for existing two-tile desks; their saved footprints remain intact.
+Newly placed desks occupy three tiles. Classic and missing-asset fallbacks retain
+the original renderer and catalogue dimensions.
+
+Live placement in Refit changed the object count from five to six, opened the
+workstation assignment dialog, and returned to five after undo. Saving retained
+the original coordinates. A dev-seed sidecar restart retained the station;
+health returned `status: ok`, version `v0.11.2-41-g0d1e015e9`. The default page
+reports `texturePack: industrial`, `textureResolution: 6`, browser errors `[]`.
+
+Reviewed the affected advertised-claim locators and the new material module,
+then refreshed only the source manifest. Existing claim verdicts and live-proof
+states remain unchanged. The previous source-audit block is resolved: its
+regression passes all 64 assertions. The full pre-merge `npm run test:fast` gate
+passes **771 / 771**, exit 0.
+
+Main branch advanced from `b4652157b` to the exact tested source `0d1e015e9`.
+Unrelated integration-checkout edits were preserved exactly. The local post-merge
+run hit its 15-minute guard without an assertion failure. Another lane then
+integrated website changes, keeping the station source unchanged. The combined
+commit `f8ddd9c36` passed **772 / 772 fast tests** and **34 / 34 customer journeys**
+in [post-merge CI](https://github.com/androoAGI/starnet/actions/runs/34728957569).
+Exact source and preservation details are recorded in the
+[integration receipt](../../qa/digests/2026-09-12-industrial-textures.md).
+No installed-desktop rebuild or release publication was performed.
