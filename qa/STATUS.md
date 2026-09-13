@@ -2835,3 +2835,5 @@ Every first-time StarNet-subscription desktop user: link → shell adopts the to
 - 2026-09-11: agent/session-failed-marker-0910 (including agent/providers-polish-0910) merged as de06c1f22. Combined pre-merge and post-merge test:fast both 771/771 GREEN. Live combined UI: all 18 provider logos, aligned statuses, animated StarNet border, flashing failed X with no duplicate label. Existing documentation edits preserved. No installer rebuild or publication.
 
 - 2026-09-12 — agent/openai-image-fix-0912 -> feat/harness-backend @ 93c994428; post-merge test:fast 771/771 and test:http 113/113 GREEN; seeded UPLINK ONLINE; mocked OpenAI Images API E2E saved a real PNG artifact. No real customer API key or OpenAI billing state was exercised.
+
+- 2026-09-12: agent/website-docs-0912 -> trunk f8ddd9c36 by exact fast-forward; pre/post-merge test:fast 772/772 and customer journeys 34/34 GREEN. Published guarded website artifact to starnetos.com (Cloudflare 759986f1); all 24 docs pages, live search/mobile navigation and desktop alignment verified. See qa/digests/2026-09-12-website-docs.md. Website deployment only, no installed desktop release claim.

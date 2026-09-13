@@ -152,3 +152,41 @@ Saved locally in the existing owned worktree; no merge or publication.
   gate rerun or integration claim; the prior incomplete gate still applies.
 
 The shared manifest generates the sidebar and directory. This remains a local unpublished revision.
+
+## Production deployment (2026-09-12, completed after midnight UTC)
+
+- User authorized publication with "proceed" after the deployment-readiness review.
+- Merged current trunk into the owned branch without rebasing, including the newer station
+  speech bubbles, model routing and industrial artwork used by the homepage preview.
+- CI found that the homepage rewrite had dropped the distinction between release checks
+  and proof that an installer works on the user's computer. Restored that meaning in plain
+  language and updated the matching copy assertion without removing the release safeguards.
+- Candidate `f8ddd9c363899ed48135f061d53b7bcdd3f4e899` passed the full fast gate
+  **772/772** and customer-journey gate **34/34** in GitHub Actions run
+  https://github.com/androoAGI/starnet/actions/runs/34728653288.
+- Trunk advanced by exact fast-forward from `0d1e015e9088767c5457ba38b377923890ef0694`
+  to that tested candidate, then was pushed normally. Uncommitted `docs/NEXT.md`,
+  `qa/STATUS.md` and the Rooms handoff retained their original SHA-256 hashes.
+- Published only the guarded `website-deploy` artifact to Cloudflare Pages `starnet-site`,
+  production branch `main`. Deployment `759986f1-9611-47e7-b86a-01d3926dda7e`:
+  https://759986f1.starnet-site.pages.dev. Public site: https://starnetos.com/docs/.
+- Previous production deployment retained for rollback:
+  `66fbffce-12f6-446c-9e14-e0c1c49f7a8d` (source `1976b0e82`).
+- HTTPS verification passed for all 24 docs pages, 12 assets and five other pages
+  (homepage, pricing, privacy, terms, station embed). Immutable deployment bytes matched
+  staging exactly. On the custom domain, HTML matched after reversing only Cloudflare's
+  email obfuscation; CSS, JavaScript and checked image assets matched byte for byte.
+- Live production browser proof at 390px: mobile menu opened the guide library, keyboard
+  search for Gatekeeper opened `getting-started#macos-first-run`, with the heading at
+  119.73px below the 107px header and no horizontal overflow. The CONTACT link decoded
+  to the intended mailto destination.
+- Live production desktop proof at 1440px: all three onboarding cards measured 210.97px
+  with identical top alignment, no horizontal overflow, loaded VT323 and the approved
+  amber glass appearance. Browser error log was empty. The final hosted candidate's
+  embedded station also booted with its crew and station view present.
+- Website publication only; this does not certify a new installed desktop release.
+- Automatic post-merge CI on the same deployed SHA also passed **772/772** fast steps
+  and **34/34** customer-journey steps; verified from the completed log:
+  https://github.com/androoAGI/starnet/actions/runs/34728957569.
+- This deployment receipt and status digest were committed in the owned worktree after
+  publication. The integration tree's foreign, uncommitted QA status was left untouched.
