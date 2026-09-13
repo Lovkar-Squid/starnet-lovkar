@@ -192,3 +192,38 @@ in [post-merge CI](https://github.com/androoAGI/starnet/actions/runs/34728957569
 Exact source and preservation details are recorded in the
 [integration receipt](../../qa/digests/2026-09-12-industrial-textures.md).
 No installed-desktop rebuild or release publication was performed.
+# Command bridge expansion — 2026-09-12
+
+Source commit: `ae32f360f818144a48e840e4a84a55297063df82`.
+Reviewed source binding: `a60754b43`.
+Delivery is the running texture-worktree preview at `http://127.0.0.1:18792/`.
+
+- Four built-in imagegen assets packaged from genuine alpha masters: tactical
+  table, console bank, equipment cabinet and deck perimeter. Exact prompts and
+  provenance: [BRIDGE_PROMPTS.md](BRIDGE_PROMPTS.md), `prepare-bridge.cjs`.
+- Live default URL reports `texturePack=industrial`, `textureResolution=6`.
+  The browser error log is empty.
+- Refit shows TACTICAL TABLE as 7 × 4, BRIDGE CONSOLE BANK as 9 × 1, and
+  EQUIPMENT BAY as 4 × 1, all under DECORATION / APPEARANCE ONLY. A cabinet was
+  placed on free deck (the UI confirmed `placed bridge_equipmentbay`) and Undo
+  removed it. Done saved the layout.
+- The persisted save contains the intended 19 props and exact authored
+  coordinates; `p1` remains assigned to `agent` (NOVA). Restarting the real
+  dev-seeded backend with `--keep` retained the complete room. Health returned
+  `status=ok`, version `v0.11.2-55-ga60754b43`.
+- Native-canvas verification passes all previous wall/chair/floor tests plus
+  source-aspect containment and grounding for the new furniture, original-art
+  fallback for all four new props, and a fully transparent perimeter center.
+  WorldModel validates every placement, rejects a console bank away from the
+  north wall, blocks the tactical table footprint, keeps the perimeter walkable,
+  and reaches all **309** unoccupied deck tiles from the southern aisle.
+- Focused canonical gate: **27/27 steps green** in `bridge-focused.log`.
+- Full pre-integration gate: **772/772 steps green**, `npm run test:fast`,
+  in `bridge-fast.log` (2026-09-12, 22:13 local).
+- Source audit review covers only the two changed rendering modules. New
+  objects are cosmetic catalog entries with classic fallbacks; agent work,
+  assignments, live status overlays and shared contracts retain their existing
+  owners. Only source hashes and the source commit were refreshed in the release
+  surface manifest; all advertised-claim records and verdicts are unchanged.
+
+![Command bridge after save and backend restart](live-command-deck.jpg)
