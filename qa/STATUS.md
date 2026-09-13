@@ -1,4 +1,4 @@
-**2026-09-13 sharp website logo LIVE; integration pending:** agent/website-sharp-logo-0913 source f05b3d586 uses the canonical SVG wordmark at 30/24px. Fast 772/772, journeys 34/34, responsive header and public asset proof passed. Production ea4d9bbd. Trunk fast-forward blocked by another process's active index.lock; no lock or foreign edits touched. See qa/digests/2026-09-13-website-sharp-logo.md.
+**2026-09-13 website logo RESTORED:** Owner withdrew the SVG direction. Revert db81726b1 restores the previous PNG header; live production 1952e6b6 verified. Fast 772/772, journeys 34/34, navigation and staging checks passed. Header matches trunk; no logo merge remains pending. Earlier SVG receipt is withdrawn. See qa/digests/2026-09-13-website-logo-restored.md.
 
 **2026-09-09 starter shell:** `agent/world-next-0907` -> `f68403588`; new starter HAB uses the owner-selected white shell (`bone`, #e7e3d9). Existing saves and all other rendering settings retained. Pre/post fast **744/744 GREEN**; live fresh-save composition and persisted shell verified. See `qa/digests/2026-09-09-starter-white-shell.md`.
 
