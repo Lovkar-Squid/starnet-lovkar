@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website');
 const CHECK = process.argv.includes('--check');
-const V = '20260912-glass';
+const V = '20260913-terminal-nav';
 const ORIGIN = 'https://starnetos.com';
 const GITHUB = 'https://github.com/androoAGI/starnet';
 const RELEASES = 'https://github.com/androoAGI/starnet-releases/releases/latest';
@@ -248,7 +248,7 @@ for (const page of pages) {
     const sections = [...main.matchAll(/<h[23][^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/h[23]>([\s\S]*?)(?=<h[23]\b|<nav class="doc-pager"|$)/g)].map(m => ({ id: m[1], t: textOf(m[2]).replace(/^\d+[.\s]*/, ''), b: textOf(m[3]).slice(0, 2400) }));
     index.push({ u: page.replace(/^docs\//, ''), t: entry.title, g: entry.group, k: entry.kind, d: textOf(desc), h: heads, s: sections });
   } else {
-    html = html.replace(/(href="(?:\.\.\/)?(?:styles\.css|docs\/docs\.css|\/styles\.css))\?v=[^"]*"/, `$1?v=${V}"`);
+    html = html.replace(/(href="(?:\.\.\/)?(?:styles\.css|docs\/docs\.css|\/styles\.css))(?:\?v=[^"]*)?"/, `$1?v=${V}"`);
     if (LOADS_SITE_JS.includes(page)) {
       html = html.replace(/(<span (?:id="ver-badge"|class="ver")>)v[\d.]+(<\/span>)/g, `$1v${FALLBACK_RELEASE}$2`);
       html = html.replace(/(src="site\.js\?v=)[^"]+/, `$1${V}`);
