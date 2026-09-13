@@ -196,7 +196,8 @@ No installed-desktop rebuild or release publication was performed.
 
 Source commit: `ae32f360f818144a48e840e4a84a55297063df82`.
 Reviewed source binding: `a60754b43`.
-Delivery is the running texture-worktree preview at `http://127.0.0.1:18792/`.
+Integrated into `feat/harness-backend` at `f56aebb6e`; the running texture-worktree
+preview at `http://127.0.0.1:18792/` has identical renderer sources.
 
 - Four built-in imagegen assets packaged from genuine alpha masters: tactical
   table, console bank, equipment cabinet and deck perimeter. Exact prompts and
@@ -220,6 +221,10 @@ Delivery is the running texture-worktree preview at `http://127.0.0.1:18792/`.
 - Focused canonical gate: **27/27 steps green** in `bridge-focused.log`.
 - Full pre-integration gate: **772/772 steps green**, `npm run test:fast`,
   in `bridge-fast.log` (2026-09-12, 22:13 local).
+- Full post-merge gate: **772/772 steps green**, `npm run test:fast` in the
+  integration checkout, logged in `bridge-postmerge-fast.log`. The pre-existing
+  integration-tree edits were checked byte-for-byte and preserved. This is a
+  local source integration; the installed desktop executable was not rebuilt.
 - Source audit review covers only the two changed rendering modules. New
   objects are cosmetic catalog entries with classic fallbacks; agent work,
   assignments, live status overlays and shared contracts retain their existing
