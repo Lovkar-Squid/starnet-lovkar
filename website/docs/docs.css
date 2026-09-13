@@ -1,5 +1,5 @@
 /* StarNet phosphor typography and production menu-glass, with a clear reading layout. */
-@import url('../styles.css?v=20260913-sharp-logo');
+@import url('../styles.css?v=20260913-brand-nav');
 html:has(body.docs-page){scroll-behavior:auto}
 .docs-page{
   --bg:#0a0806;--amber:#ffaa33;--amber-b:#ffe4b4;--amber-d:#bb915c;

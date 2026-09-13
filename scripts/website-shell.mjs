@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'website');
 const CHECK = process.argv.includes('--check');
-const V = '20260913-sharp-logo';
+const V = '20260913-brand-nav';
 const ORIGIN = 'https://starnetos.com';
 const GITHUB = 'https://github.com/androoAGI/starnet';
 const RELEASES = 'https://github.com/androoAGI/starnet-releases/releases/latest';
@@ -96,7 +96,7 @@ function topbar(page) {
   const dc = page.startsWith('docs/') ? ' class="on"' : '';
   const pr = page === 'pricing.html' ? ' class="on"' : '';
   return `<header class="topbar" id="topbar">
-  <a class="brand" href="${root || '#top'}" aria-label="StarNet home"><span class="brand-mark" aria-hidden="true"></span></a>
+  <a class="brand" href="${root || '#top'}" aria-label="StarNet home"><img src="${h('assets/starnet-logo-small.png')}" alt="StarNet" width="355" height="60"></a>
   <nav class="topnav" aria-label="Site">
     <a href="${root}#station">Product</a>
     <a href="${h('docs/index.html')}"${dc}>Docs</a>
