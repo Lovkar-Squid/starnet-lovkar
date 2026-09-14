@@ -82,6 +82,40 @@ console.log('\n-- INJECTION: a note cannot break out of the data fence --');
   ok(po === 1 && pc === 1, 'the full prompt still has exactly one fence pair');
 }
 
+console.log('\n-- PINNED notes carry their body, and cannot escape the fence either --');
+{
+  v.write('speak-slovenian', {
+    title: 'Commander speaks Slovenian',
+    tags: ['language'],
+    body: 'Answer the Commander in Slovenian.'
+  }, '2026-09-14T14:00:00Z');
+  // pin it the way a hand edit would
+  const f = require('path').join(tmp, 'notes', 'speak-slovenian.md');
+  const rec = md.parse(fs.readFileSync(f, 'utf8'));
+  rec.meta.pinned = true;
+  fs.writeFileSync(f, md.serialize(rec));
+
+  const pin = v.pinnedBlock();
+  ok(/Answer the Commander in Slovenian\./.test(pin), 'a pinned body is carried in full');
+  ok(!/Use npm start/.test(pin), 'an unpinned body is NOT carried');
+
+  const prompt = v.protocolPrompt('vault/notes');
+  ok(/STANDING NOTES/.test(prompt), 'the prompt announces standing notes');
+  ok(/never what you are/i.test(prompt), 'pinning is stated to change recall, not permission');
+  const po = prompt.split(FENCE_OPEN).length - 1, pc = prompt.split(FENCE_CLOSE).length - 1;
+  ok(po === pc, 'fences stay balanced with both blocks present (' + po + '/' + pc + ')');
+
+  // and the hostile note from the previous block is still in the vault - pin it too
+  const hf = require('path').join(tmp, 'notes', 'hostile.md');
+  const hrec = md.parse(fs.readFileSync(hf, 'utf8'));
+  hrec.meta.pinned = true;
+  fs.writeFileSync(hf, md.serialize(hrec));
+  const pin2 = v.pinnedBlock();
+  ok(pin2.split(FENCE_OPEN).length - 1 === 1, 'a PINNED hostile note still cannot open a second fence');
+  ok(pin2.split(FENCE_CLOSE).length - 1 === 1, 'a PINNED hostile note still cannot close the fence early');
+  ok(pin2.trim().endsWith(FENCE_CLOSE), 'the close is still last');
+}
+
 console.log('\n-- empty vault degrades gracefully --');
 {
   const t2 = fs.mkdtempSync(path.join(os.tmpdir(), 'vaultempty-'));
