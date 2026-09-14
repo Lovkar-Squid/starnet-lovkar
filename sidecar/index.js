@@ -129,6 +129,7 @@ const oauthTokenStore = require('./providers/oauth-token-store.js');
 const { effectiveModel: resolveEffectiveModel, effectiveUsd, effectiveRunUsd } = require('./spend.js');
 const { makeEmitter } = require('../shared/emitter.js');
 /* LOVKAR:claude-code */ const { makeLovkarRun } = require('./routes/lovkar-run.js');
+/* LOVKAR:claude-code */ const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');
 const { redact, renderRecall, injectRecall, rank, makeContext, compactionMemoryBlock, compactionSummaryPrompt } = require('./context.js');
 const { makeSummarizer } = require('./compaction-summarizer.js');   // chunked context-compaction fold (Lane A)
 const { runRouteFailure } = require('./runroute.js');   // a failure escaping handleRun must never read as an empty 200
@@ -3740,6 +3741,7 @@ const stationBridge = makeStationBridge({ emit: (name, payload) => { try { sse.b
 const chanEmitValidated = makeEmitter(chanBus, e => console.warn('[channel-event]', e.kind, e.event, (e.errors || []).join(';')));
 const chanEmit = (name, payload) => { try { return chanEmitValidated(name, redact(payload)); } catch (_) {} };
 /* LOVKAR:claude-code */ const lovkarRun = makeLovkarRun({ chanEmit, cwd: process.cwd() });
+/* LOVKAR:claude-code */ const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });
 
 // H2.2: the SINGLETON background-process manager — persists across runs so a backgrounded dev server survives the
 // run that started it. shell.bg.exit fires AFTER the originating run's NDJSON stream closed, so it rides the
@@ -15005,6 +15007,10 @@ async function runOnce(o) {
     throw Object.assign(new Error('StarNet is frozen at a verified pre-update recovery point.'), { code: 'UPDATE_MUTATIONS_FROZEN' });
   }
   const { key, system: rawSystem, messages = [], agentId = 'agent', signal, runId } = o;
+  /* LOVKAR:claude-code */ {
+    const _lovkarProv = normalizeProvider(o.provider || ((agentRoster.get(String(o.agentId || '')) || {}).provider) || '');
+    if (_lovkarProv === 'claude-code') return lovkarRunOnce.runClaudeCodeOnce(o);
+  }
   const runStartedAt = Date.now();
   let system = rawSystem;
   if (o.workdir) {

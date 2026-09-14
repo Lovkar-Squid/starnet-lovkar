@@ -203,7 +203,7 @@ sidecar/mcp/google-client.json
 
 
 # ---- LOVKAR fork ----
-sidecar/index.js.pre-lovkar
+*.pre-lovkar
 
 # The agents' vault is the USER's memory, not this project's source. It keeps its own git
 # inside vault/ so the history of what the agents believe stays on their machine.

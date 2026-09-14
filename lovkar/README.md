@@ -25,7 +25,7 @@ listens to. `frontend/` is untouched.
 | `sidecar/runners/claudecode-translate.js` | PURE `stream-json` → `shared/events.js` |
 | `sidecar/runners/claudecode-runner.js` | spawn + NDJSON plumbing |
 | `sidecar/routes/lovkar-run.js` | the HTTP route, dual-emit (bus + response) |
-| `lovkar/patch-index.js` | the **entire** `index.js` footprint, anchored and idempotent |
+| `lovkar/patch-upstream.js` | every line added to any upstream file, anchored and idempotent |
 | `lovkar/test-translate.js` | the gate: every event validated against the frozen contract |
 | `lovkar/scrub-fixture.js` | strips the home path out of a dump before it is committed |
 | `lovkar/fixtures/` | real dumps, scrubbed |
@@ -34,7 +34,7 @@ listens to. `frontend/` is untouched.
 
 ```bash
 npm install
-node lovkar/patch-index.js                    # apply the three index.js lines
+node lovkar/patch-upstream.js                    # apply the three index.js lines
 node sidecar/index.js                         # station on http://127.0.0.1:8787
 node lovkar/test-translate.js lovkar/fixtures/*.jsonl
 node lovkar/try-runner.js "your prompt"       # live, no browser needed
@@ -57,6 +57,12 @@ So Claude Code slots in one level up: it drives the turn, and we translate its o
 the events the station already renders. The pure translator is the whole contract, and it
 is tested against real dumps rather than mocks.
 
+## Provider wiring is done
+
+`providers/registry.js` has a `claude-code` profile and `runOnce` short-circuits that
+provider id to the Claude Code runner, so `POST /api/run` — the station's own route — runs
+on the subscription. Pass a model alias (`opus`, `sonnet`, `haiku`); handleRun requires one.
+
 ## Next: the connect screen
 
 Reaching the station floor at all requires picking a provider on *Connect a brain*, and the
@@ -64,16 +70,14 @@ tiles there are static markup in `frontend/index.html` keyed by `data-prov`, not
 from `providers/registry.js`. A `claude-code` tile therefore needs three things, and the
 order matters:
 
-1. a `claude-code` profile in `providers/registry.js`
-   (`keyRequired: false`, `unmetered: true`, modelled on the existing `codex` profile)
-2. a branch in `runOnce` that routes that provider id to the runner **instead of**
-   `selectProvider` — adding a `claude-code` case to `providers/factory.js` would be wrong,
-   because there is no adapter satisfying the provider seam and never will be
-3. the tile itself, plus the sign-in copy on the card
+1. ~~a `claude-code` profile in `providers/registry.js`~~ — done
+2. ~~a branch in `runOnce` routing that provider id to the runner~~ — done
+3. the tile itself, plus the sign-in copy on the card — still to do, and it means a real
+   edit to `frontend/index.html`
 
-Step 2 is the real work and the only invasive one; it belongs in `lovkar/patch-index.js`
-alongside the existing three insertions so the whole upstream footprint stays in one
-reviewable, re-runnable script.
+Adding a `claude-code` case to `providers/factory.js` would have been wrong: no adapter can
+satisfy a one-turn transport seam for something that owns its own agent loop. The whole
+upstream footprint lives in `lovkar/patch-upstream.js` — five insertions across two files.
 
 ## Known, verified
 
