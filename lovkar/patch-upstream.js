@@ -43,6 +43,7 @@ const FILES = [
         add: "\n" + M + " const { makeLovkarRun } = require('./routes/lovkar-run.js');"
            + "\n" + M + " const { makeLovkarStatus } = require('./routes/lovkar-status.js');"
            + "\n" + M + " const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');"
+           + "\n" + M + " const { makeLovkarProposals } = require('./routes/lovkar-proposals.js');"
       },
       {
         what: 'construct both (chanEmit must already exist)',
@@ -50,12 +51,15 @@ const FILES = [
         add: "\n" + M + " const lovkarRun = makeLovkarRun({ chanEmit, cwd: process.cwd() });"
            + "\n" + M + " const lovkarStatus = makeLovkarStatus({});"
            + "\n" + M + " const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });"
+           + "\n" + M + " const lovkarProposals = makeLovkarProposals({ cwd: process.cwd() });"
       },
       {
         what: 'register POST /api/lovkar/run',
         anchor: "  { m: 'POST', exact: '/api/run', h: handleRun, errorPolicy: runFailPolicy },",
         add: "\n  " + M + " { m: 'POST', exact: '/api/lovkar/run', h: (req, res) => lovkarRun.handle(req, res) },"
            + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },"
+           + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/proposals', h: (req, res) => lovkarProposals.handleList(req, res) },"
+           + "\n  " + M + " { m: 'POST', exact: '/api/lovkar/proposals/decide', h: (req, res) => lovkarProposals.handleDecide(req, res) },"
       },
       {
         /* The important one. It sits at the very top of runOnce, before the concurrency gate
@@ -138,6 +142,14 @@ const FILES = [
     file: 'frontend/app/app.js',
     patches: [
       { what: 'teach normalizeProviderId about claude-code', anchor: NORM_ANCHOR, add: NORM_ADD },
+      {
+        /* The live WorldModel is a closure variable here. Placement proposals must place through
+           it - the same validated addProp/addRoom a hand placement uses - so expose an accessor.
+           It hands back the live model, never a copy: a copy would accept a placement nobody sees. */
+        what: 'expose the live station for placement proposals',
+        anchor: '  return { show, refreshUsage, persist, pushRoster,',
+        replaceWith: '  return { lovkarStation: () => station,   ' + M + '\n    show, refreshUsage, persist, pushRoster,'
+      },
       {
         what: 'label claude-code in the provider map',
         anchor: "      codex: 'GPT',",
@@ -241,6 +253,11 @@ const FILES = [
         add: '\n                <!-- LOVKAR:claude-code - the whole point of this fork: Anthropic on a subscription.\n'
            + '                     Keyless like GROK/KIMI; the credential is the Claude Code CLI login in ~/.claude. -->\n'
            + '                <button class="prov" data-prov="claude-code" aria-pressed="false">CLAUDE <span class="prov-tag">SIGN IN</span></button>'
+      },
+      {
+        what: 'load the placement proposal card',
+        anchor: '<script src="app/stationcommands.js"></script>',
+        add: '\n<script src="app/lovkar-proposals.js"></script><!-- LOVKAR:claude-code - agents propose rooms/objects, the Commander accepts -->'
       }
     ]
   }

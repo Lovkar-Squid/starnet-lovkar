@@ -131,6 +131,7 @@ const { makeEmitter } = require('../shared/emitter.js');
 /* LOVKAR:claude-code */ const { makeLovkarRun } = require('./routes/lovkar-run.js');
 /* LOVKAR:claude-code */ const { makeLovkarStatus } = require('./routes/lovkar-status.js');
 /* LOVKAR:claude-code */ const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');
+/* LOVKAR:claude-code */ const { makeLovkarProposals } = require('./routes/lovkar-proposals.js');
 const { redact, renderRecall, injectRecall, rank, makeContext, compactionMemoryBlock, compactionSummaryPrompt } = require('./context.js');
 const { makeSummarizer } = require('./compaction-summarizer.js');   // chunked context-compaction fold (Lane A)
 const { runRouteFailure } = require('./runroute.js');   // a failure escaping handleRun must never read as an empty 200
@@ -3744,6 +3745,7 @@ const chanEmit = (name, payload) => { try { return chanEmitValidated(name, redac
 /* LOVKAR:claude-code */ const lovkarRun = makeLovkarRun({ chanEmit, cwd: process.cwd() });
 /* LOVKAR:claude-code */ const lovkarStatus = makeLovkarStatus({});
 /* LOVKAR:claude-code */ const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });
+/* LOVKAR:claude-code */ const lovkarProposals = makeLovkarProposals({ cwd: process.cwd() });
 
 // H2.2: the SINGLETON background-process manager — persists across runs so a backgrounded dev server survives the
 // run that started it. shell.bg.exit fires AFTER the originating run's NDJSON stream closed, so it rides the
@@ -9098,6 +9100,8 @@ const ROUTES = [
   { m: 'POST', exact: '/api/run', h: handleRun, errorPolicy: runFailPolicy },
   /* LOVKAR:claude-code */ { m: 'POST', exact: '/api/lovkar/run', h: (req, res) => lovkarRun.handle(req, res) },
   /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },
+  /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/proposals', h: (req, res) => lovkarProposals.handleList(req, res) },
+  /* LOVKAR:claude-code */ { m: 'POST', exact: '/api/lovkar/proposals/decide', h: (req, res) => lovkarProposals.handleDecide(req, res) },
   { m: 'POST', exact: '/api/run-recoveries/resolve', h: handleRunRecoveryResolve },
   { m: 'POST', exact: '/api/run-recoveries/continue', h: handleRunRecoveryContinue },
   { m: 'POST', exact: '/api/tts', h: media.handleTts, errorPolicy: media.ttsFailOpenPolicy },

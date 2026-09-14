@@ -56,6 +56,9 @@ Never add a `claude-code` case to `providers/factory.js`: no adapter can satisfy
 | `sidecar/runners/claudecode-caps.js` | PURE: placed objects → tools + folder reach |
 | `sidecar/runners/claudecode-runonce.js` | the runOnce-compatible entry point |
 | `sidecar/runners/ratelimit-gate.js` | limit notices only every N% (default 5) |
+| `sidecar/vault/proposals.js` | PURE-ish: validate / list / decide placement proposals |
+| `sidecar/routes/lovkar-proposals.js` | `GET /api/lovkar/proposals`, `POST …/decide` |
+| `frontend/app/lovkar-proposals.js` | Accept/Reject card; places via the real WorldModel |
 | `sidecar/routes/lovkar-run.js` | `POST /api/lovkar/run`, dual-emit (bus + response) |
 | `sidecar/vault/vault-root.js` | WHERE the vault lives — one answer for every copy |
 | `sidecar/vault/` | the agents' markdown memory |
@@ -117,8 +120,10 @@ think, and the same argument applies to remembering. It is a divergence, made on
 - **`rate_limit_event`** reports live utilization of the 5-hour and 7-day windows. On a
   subscription that is the honest gauge; `total_cost_usd` is a client-side estimate.
 - **The desktop build embeds a COPY of `sidecar/`.** Changing JS in the repo changes nothing
-  until it is copied into `src-tauri/target/release/sidecar/`. No `cargo` rebuild is needed
-  for JS-only changes — only for Rust or `tauri.conf.json`.
+  until it is copied into `src-tauri/target/release/sidecar/` and the app is restarted (a
+  running sidecar keeps the modules it loaded). No `cargo` rebuild for sidecar JS. **The
+  frontend is different:** the window opens `WebviewUrl::App("index.html")`, which is
+  embedded in the `.exe` at build time, so any `frontend/` change needs `npm run desktop:build`.
 - **`cargo` lives in `%USERPROFILE%\.cargo\bin`** and is not always on PATH; `tauri build`
   fails with "program not found" for `cargo metadata` when it is missing.
 
@@ -133,6 +138,7 @@ node lovkar/test-translate.js lovkar/fixtures/*.jsonl
 node lovkar/test-vault.js
 node lovkar/test-gate.js
 node lovkar/test-caps.js                  # the moat projection + the vault root
+node lovkar/test-proposals.js             # agents propose, only the Commander places
 ```
 
 Needs the Claude Code CLI logged in with a Pro/Max/Team/Enterprise account. No API key, and

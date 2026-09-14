@@ -32,6 +32,7 @@
 const path = require('path');
 const { makeClaudeCodeRunner } = require('./claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
+const { makeProposals } = require('../vault/proposals.js');
 const { resolveVaultRoot } = require('../vault/vault-root.js');
 const { resolveClaudeCaps, capsPrompt } = require('./claudecode-caps.js');
 const { sharedRateLimitGate } = require('./ratelimit-gate.js');
@@ -78,6 +79,8 @@ function makeClaudeCodeRunOnce(deps) {
   const vaultRoot = deps.vaultRoot ? path.resolve(deps.vaultRoot) : resolveVaultRoot({ cwd });
   const vault = makeVault({ root: vaultRoot });
   try { vault.init(); } catch (_) {}
+  // An agent may PROPOSE a room or an object into the vault; only the Commander places it.
+  const proposals = makeProposals({ root: vaultRoot });
 
   async function runClaudeCodeOnce(o) {
     o = o || {};
@@ -113,7 +116,8 @@ function makeClaudeCodeRunOnce(deps) {
     const appendSystemPrompt = [
       String(o.system || '').trim(),
       capsPrompt(caps),
-      o.vault === false ? '' : vault.protocolPrompt(vault.notesDir)
+      o.vault === false ? '' : vault.protocolPrompt(vault.notesDir),
+      o.vault === false || o.proposals === false ? '' : proposals.promptBlock(agentId)
     ].filter(Boolean).join('\n\n');
 
     let summary = null, failed = null;
