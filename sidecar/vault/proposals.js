@@ -60,6 +60,17 @@ function validateProposal(raw, id) {
   return { ok: false, error: 'kind must be "object" or "room"' };
 }
 
+/* WHERE THE FLOOR IS WRITTEN DOWN. The station is browser state; the sidecar keeps a durable mirror in the
+   workspace. An agent that cannot see the floor proposes into the dark — it happened three times in one
+   evening, once placing an object in the proposer's room instead of the named agent's. Telling it the path
+   costs nothing and removes the guessing; reading is all it can do there anyway. */
+function stationSavePath() {
+  const env = process.env;
+  if (env.STARNET_WORKSPACES || env.SKYNET_WORKSPACES) return path.join(String(env.STARNET_WORKSPACES || env.SKYNET_WORKSPACES), 'agent.save.json');
+  const base = env.APPDATA || env.LOCALAPPDATA || env.XDG_DATA_HOME || '';
+  return base ? path.join(base, 'ai.skynet.harness', 'workspaces', 'agent.save.json') : '<the sidecar workspace>/agent.save.json';
+}
+
 function makeProposals(deps) {
   deps = deps || {};
   if (!deps.root) throw new Error('makeProposals needs the vault root');
@@ -157,7 +168,13 @@ function makeProposals(deps) {
       'workbench (terminal), studio (images), jukebox (Spotify). roomKind: ' + ROOM_KINDS.join(', ') + '.',
       'Size ' + MIN_ROOM + '-' + MAX_ROOM + ' tiles. `bay` and `connector_portal` cannot be proposed.',
       'Keep "agent" as shown. Optional "room": a room name; default is your own room (a new room goes beside it).',
-      'Propose only what the current task needs, and never claim an object is placed until it is.'
+      'Propose only what the current task needs, and never claim an object is placed until it is.',
+      '',
+      'READ THE FLOOR BEFORE YOU PROPOSE. The station lives in the browser, not in this run, which is why',
+      'earlier proposals guessed a room name and one of them landed in the wrong room. You do not have to',
+      'guess: the durable copy is `' + stationSavePath() + '`,',
+      'under `doc.station` (rooms with their names, every prop, the bays and which agent each is bound to).',
+      'Read it, name the room explicitly, and say what you found. Read ONLY that file in that folder.'
     ];
     const recent = decided(5);
     if (recent.length) {
