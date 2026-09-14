@@ -69,7 +69,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGN0UzMkRCMjIyMTNGOEMKUldTTVB5RWkyekorLzlDdS90THkxSTNlVk1CVlFaSVErY2lJVlNESDFtR1Uva2tlS1J6WDZCL1UK",
       "endpoints": [
-        "https://github.com/androoAGI/starnet-releases/releases/latest/download/latest.json"
+        "https://github.com/Lovkar-Squid/starnet-lovkar/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

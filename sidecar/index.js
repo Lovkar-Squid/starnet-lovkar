@@ -129,6 +129,7 @@ const oauthTokenStore = require('./providers/oauth-token-store.js');
 const { effectiveModel: resolveEffectiveModel, effectiveUsd, effectiveRunUsd } = require('./spend.js');
 const { makeEmitter } = require('../shared/emitter.js');
 /* LOVKAR:claude-code */ const { makeLovkarRun } = require('./routes/lovkar-run.js');
+/* LOVKAR:claude-code */ const { makeLovkarStatus } = require('./routes/lovkar-status.js');
 /* LOVKAR:claude-code */ const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');
 const { redact, renderRecall, injectRecall, rank, makeContext, compactionMemoryBlock, compactionSummaryPrompt } = require('./context.js');
 const { makeSummarizer } = require('./compaction-summarizer.js');   // chunked context-compaction fold (Lane A)
@@ -3741,6 +3742,7 @@ const stationBridge = makeStationBridge({ emit: (name, payload) => { try { sse.b
 const chanEmitValidated = makeEmitter(chanBus, e => console.warn('[channel-event]', e.kind, e.event, (e.errors || []).join(';')));
 const chanEmit = (name, payload) => { try { return chanEmitValidated(name, redact(payload)); } catch (_) {} };
 /* LOVKAR:claude-code */ const lovkarRun = makeLovkarRun({ chanEmit, cwd: process.cwd() });
+/* LOVKAR:claude-code */ const lovkarStatus = makeLovkarStatus({});
 /* LOVKAR:claude-code */ const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });
 
 // H2.2: the SINGLETON background-process manager — persists across runs so a backgrounded dev server survives the
@@ -9095,6 +9097,7 @@ const ROUTES = [
   { m: 'POST', exact: '/api/local-voice/transcribe', h: media.handleLocalVoiceTranscribe },
   { m: 'POST', exact: '/api/run', h: handleRun, errorPolicy: runFailPolicy },
   /* LOVKAR:claude-code */ { m: 'POST', exact: '/api/lovkar/run', h: (req, res) => lovkarRun.handle(req, res) },
+  /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },
   { m: 'POST', exact: '/api/run-recoveries/resolve', h: handleRunRecoveryResolve },
   { m: 'POST', exact: '/api/run-recoveries/continue', h: handleRunRecoveryContinue },
   { m: 'POST', exact: '/api/tts', h: media.handleTts, errorPolicy: media.ttsFailOpenPolicy },

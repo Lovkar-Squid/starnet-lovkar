@@ -243,6 +243,7 @@ const Harness = (() => {
           _alternateCountByProvider[p] = Math.max(0, Number(s && s.alternateCount) || 0);
         });
         _configured = !!_configuredByProvider.openrouter;
+        /* LOVKAR:claude-code */ try { const _lr = await fetch('/api/lovkar/status'); const _lj = await _lr.json(); _configuredByProvider['claude-code'] = !!(_lj && _lj.configured); } catch (_) {}
         loaded = true;
       }
     } catch (_) {}

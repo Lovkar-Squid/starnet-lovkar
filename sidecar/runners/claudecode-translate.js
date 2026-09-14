@@ -177,6 +177,10 @@
        client-side estimate, the utilization is the thing that actually stops you. */
     function onRateLimit(o) {
       const info = (o && o.rate_limit_info) || {};
+      // A gate decides whether this one is worth a line. Injected, so the translator stays
+      // pure and the MEMORY lives one level up: a per-run gate would have nothing to compare
+      // against, and every run would report again.
+      if (typeof opts.shouldNotifyLimit === 'function' && !opts.shouldNotifyLimit(info)) return [];
       const w = info.unifiedWindows || {};
       const five = w.five_hour ? pct(w.five_hour.utilization) : null;
       const seven = w.seven_day ? pct(w.seven_day.utilization) : null;

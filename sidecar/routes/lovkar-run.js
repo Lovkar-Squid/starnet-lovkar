@@ -24,6 +24,7 @@ const os = require('os');
 const fs = require('fs');
 const { makeClaudeCodeRunner } = require('../runners/claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
+const { sharedRateLimitGate } = require('../runners/ratelimit-gate.js');
 
 const MAX_BODY = 1 << 16;
 const MAX_PROMPT = 8000;
@@ -125,7 +126,8 @@ function makeLovkarRun(deps) {
           body.appendSystemPrompt, vault.protocolPrompt('vault/notes', body.vaultIndexLimit)
         ].filter(Boolean).join('\n\n'),
         emit,
-        signal: ac.signal
+        signal: ac.signal,
+        shouldNotifyLimit: sharedRateLimitGate().shouldNotify
       });
     } catch (e) {
       failure = e && e.message ? e.message : String(e);

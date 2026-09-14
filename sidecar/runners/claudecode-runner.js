@@ -63,7 +63,8 @@
       const emit = typeof opts.emit === 'function' ? opts.emit : function () {};
       const tr = translate.makeTranslator({
         agentId: opts.agentId, runId: opts.runId,
-        trigger: opts.trigger, model: opts.model
+        trigger: opts.trigger, model: opts.model,
+        shouldNotifyLimit: opts.shouldNotifyLimit
       });
 
       return new Promise(function (resolve, reject) {

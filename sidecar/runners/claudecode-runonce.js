@@ -25,6 +25,7 @@
 const path = require('path');
 const { makeClaudeCodeRunner } = require('./claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
+const { sharedRateLimitGate } = require('./ratelimit-gate.js');
 
 const MAX_PROMPT = 60000;
 
@@ -99,7 +100,8 @@ function makeClaudeCodeRunOnce(deps) {
         permissionMode: o.permissionMode || 'dontAsk',
         appendSystemPrompt,
         emit,
-        signal: o.signal
+        signal: o.signal,
+        shouldNotifyLimit: sharedRateLimitGate().shouldNotify
       });
     } catch (e) {
       failed = (e && e.message) ? e.message : String(e);

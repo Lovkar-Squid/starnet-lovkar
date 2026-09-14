@@ -41,18 +41,21 @@ const FILES = [
         what: 'require the route and the runOnce adapter',
         anchor: "const { makeEmitter } = require('../shared/emitter.js');",
         add: "\n" + M + " const { makeLovkarRun } = require('./routes/lovkar-run.js');"
+           + "\n" + M + " const { makeLovkarStatus } = require('./routes/lovkar-status.js');"
            + "\n" + M + " const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');"
       },
       {
         what: 'construct both (chanEmit must already exist)',
         anchor: "const chanEmit = (name, payload) => { try { return chanEmitValidated(name, redact(payload)); } catch (_) {} };",
         add: "\n" + M + " const lovkarRun = makeLovkarRun({ chanEmit, cwd: process.cwd() });"
+           + "\n" + M + " const lovkarStatus = makeLovkarStatus({});"
            + "\n" + M + " const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });"
       },
       {
         what: 'register POST /api/lovkar/run',
         anchor: "  { m: 'POST', exact: '/api/run', h: handleRun, errorPolicy: runFailPolicy },",
         add: "\n  " + M + " { m: 'POST', exact: '/api/lovkar/run', h: (req, res) => lovkarRun.handle(req, res) },"
+           + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },"
       },
       {
         /* The important one. It sits at the very top of runOnce, before the concurrency gate
@@ -160,6 +163,17 @@ const FILES = [
         replaceWith: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet' && p !== 'claude-code';   " + M
       },
       {
+        /* THE DESKTOP GAP. A packaged build answers "is this provider configured?" by
+           enumerating the OS KEYCHAIN. Right question for a key, wrong one here: there is no
+           key, the credential is a CLI login in ~/.claude, and without this the desktop build
+           shows CLAUDE as unconfigured forever - exactly as codex/grok/kimi would without
+           their own status probes. */
+        what: 'desktop: learn claude-code state from the CLI probe',
+        anchor: "        _configured = !!_configuredByProvider.openrouter;",
+        replaceWith: "        _configured = !!_configuredByProvider.openrouter;\n"
+                   + "        " + M + " try { const _lr = await fetch('/api/lovkar/status'); const _lj = await _lr.json(); _configuredByProvider['claude-code'] = !!(_lj && _lj.configured); } catch (_) {}"
+      },
+      {
         /* Same shape as codex/grok/kimi: the credential lives outside the browser (here, in
            ~/.claude), so selecting the provider IS the local truth. */
         what: 'claude-code counts as credentialed when selected',
@@ -184,6 +198,22 @@ const FILES = [
         anchor: "      : ['grok','kimi','codex'].includes(provider) ? 'Sign in, then choose a model from your account.'",
         replaceWith: "      : provider === 'claude-code' ? 'Signed in through the Claude Code CLI on this computer - just choose a model.'   " + M + "\n"
                    + "      : ['grok','kimi','codex'].includes(provider) ? 'Sign in, then choose a model from your account.'"
+      }
+    ]
+  },
+  {
+    file: 'src-tauri/tauri.conf.json',
+    patches: [
+      {
+        /* THE TRAP. Left alone, a desktop build of this fork auto-updates from UPSTREAM's
+           release feed - installMode "passive" on Windows, so it happens without a click and
+           silently replaces the fork with stock StarNet. Point it at this fork's own repo:
+           until a signed release exists there the updater simply finds nothing, which is the
+           safe failure. Signing needs the fork's OWN minisign key; upstream's pubkey stays
+           here on purpose, so an upstream artifact cannot verify either. */
+        what: 'point the updater away from upstream releases',
+        anchor: '        "https://github.com/androoAGI/starnet-releases/releases/latest/download/latest.json"',
+        replaceWith: '        "https://github.com/Lovkar-Squid/starnet-lovkar/releases/latest/download/latest.json"'
       }
     ]
   },
