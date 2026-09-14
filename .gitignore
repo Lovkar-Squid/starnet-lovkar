@@ -200,3 +200,7 @@ dev/.shots-toast/
 /dev/.group-profile/
 .worldshots/
 sidecar/mcp/google-client.json
+
+# LOVKAR fork
+sidecar/index.js.pre-lovkar
+
