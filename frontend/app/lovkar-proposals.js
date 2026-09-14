@@ -23,8 +23,16 @@ const LovkarProposals = (() => {
   const specOf = t => (typeof PropSprites !== 'undefined' && PropSprites.spec) ? PropSprites.spec(t) : null;
   const grantOf = t => (typeof WorldModel !== 'undefined' && WorldModel.grantLabelForProp) ? WorldModel.grantLabelForProp(t) : null;
 
-  /* WHERE: a room named in the proposal, else the proposing agent's own room, else the hero's,
-     else the spawn room. A name that matches nothing is a refusal, not a silent fallback. */
+  /* WHERE: a room named in the proposal, else the NAMED agent's own room, else — only when no
+     agent was named — the hero's room or the spawn room. A name that matches nothing is a
+     refusal, not a silent fallback.
+
+     THE FALLBACK USED TO SWALLOW A NAMED AGENT. If a proposal said `analyst` and that agent had
+     no room, the loop fell through to 'agent' and the object landed in the PROPOSER's room while
+     the card still read as if it had gone to the analyst. Harmless for a trophy case, not
+     harmless for a workbench: that is a capability granted to an agent nobody chose. Found and
+     reported by the agent that wrote this file. An explicitly named agent now either gets its
+     own room or an error. */
   function targetRoom(st, p) {
     const rooms = (st.rooms && st.rooms()) || [];
     if (p.room) {
@@ -33,8 +41,14 @@ const LovkarProposals = (() => {
       if (hit.length !== 1) return { error: 'no room called "' + p.room + '"' };
       return { room: hit[0] };
     }
-    for (const aid of [p.agent, 'agent']) {
-      if (!aid || !st.agentRoomId) continue;
+    if (p.agent) {
+      const id = st.agentRoomId && st.agentRoomId(p.agent);
+      const room = id && st.roomById(id);
+      if (room) return { room };
+      return { error: 'agent "' + p.agent + '" has no room of its own — name the room in the proposal, or place it by hand' };
+    }
+    for (const aid of ['agent']) {
+      if (!st.agentRoomId) break;
       const id = st.agentRoomId(aid);
       if (id && st.roomById(id)) return { room: st.roomById(id) };
     }
