@@ -19462,6 +19462,11 @@ async function handleProviderModels(req, res) {
   } catch (_) {}
   const id = normalizeProvider(providerId);
   if (!getProviderProfile(id)) return json(404, { models: [], error: 'unknown provider' });
+  /* LOVKAR:claude-code */ if (id === 'claude-code') return json(200, { provider: id, models: [
+    { id: 'opus', name: 'Claude Opus', context_length: 200000, supportsTools: true },
+    { id: 'sonnet', name: 'Claude Sonnet', context_length: 200000, supportsTools: true },
+    { id: 'haiku', name: 'Claude Haiku', context_length: 200000, supportsTools: true }
+  ] });
   try {
     const models = await listModelsForProvider(id, { baseUrl });
     json(200, { provider: id, models: models.map(publicModel) });

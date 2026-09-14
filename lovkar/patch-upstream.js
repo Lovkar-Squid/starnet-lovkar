@@ -1,19 +1,19 @@
 /* lovkar/patch-upstream.js — every line this fork adds to an upstream file, in one script.
 
-   Supersedes lovkar/patch-index.js (which covered index.js only, before the provider profile
-   and the runOnce branch existed).
-
-   Upstream files are hand-edited NOWHERE. Each one is restored from a pristine `.pre-lovkar`
+   Upstream files are hand-edited NOWHERE. Each is restored from a pristine `.pre-lovkar`
    backup and re-patched from scratch, which makes this idempotent by construction: run it
-   twice, run it after a rebase, run it after someone poked the file — the result is the same
+   twice, run it after a rebase, run it after someone poked a file — the result is the same
    and always reflects exactly what is written here.
 
    Anchors are ALWAYS single-line: a multi-line anchor depends on the file's line endings and
    silently stops matching the moment a checkout normalises them.
 
+   `add` appends after the anchor. `replaceWith` swaps the anchor line itself, for the cases
+   where the change is INSIDE an expression rather than beside it.
+
    Run:  node lovkar/patch-upstream.js            (apply)
          node lovkar/patch-upstream.js --check    (verify anchors, write nothing)
-         node lovkar/patch-upstream.js --revert    (restore upstream, remove the backups)
+         node lovkar/patch-upstream.js --revert   (restore upstream, drop the backups)
 */
 'use strict';
 const fs = require('fs');
@@ -26,6 +26,12 @@ const mode = process.argv.includes('--revert') ? 'revert'
            : 'apply';
 
 const M = '/* LOVKAR:claude-code */';
+
+/* Both frontend files carry their OWN hardcoded provider normalizer whose default arm is
+   'openrouter'. Without this line every claude-code selection silently became an OpenRouter
+   one — key box, model list and all. */
+const NORM_ANCHOR = "    if (p === 'anthropic' || p === 'claude') return 'anthropic';";
+const NORM_ADD = "\n    " + M + " if (p === 'claude-code' || p === 'claudecode' || p === 'claude-max' || p === 'anthropic-oauth') return 'claude-code';";
 
 const FILES = [
   {
@@ -49,18 +55,28 @@ const FILES = [
         add: "\n  " + M + " { m: 'POST', exact: '/api/lovkar/run', h: (req, res) => lovkarRun.handle(req, res) },"
       },
       {
-        /* The important one. It sits at the very TOP of runOnce, before the concurrency gate
+        /* The important one. It sits at the very top of runOnce, before the concurrency gate
            and the workspace lease, so returning here releases nothing that was never taken.
            A Claude Code run brings its own loop, tools and permission model; none of the host
-           runOnce assembles below applies to it. */
+           that runOnce assembles below applies to it. */
         what: 'short-circuit runOnce for the claude-code provider',
-        // Single-line anchor on purpose: a multi-line one is hostage to CRLF vs LF. This line
-        // sits immediately after the frozen-state check, so the branch lands after it.
         anchor: "  const { key, system: rawSystem, messages = [], agentId = 'agent', signal, runId } = o;",
         add: "\n  " + M + " {\n"
            + "    const _lovkarProv = normalizeProvider(o.provider || ((agentRoster.get(String(o.agentId || '')) || {}).provider) || '');\n"
            + "    if (_lovkarProv === 'claude-code') return lovkarRunOnce.runClaudeCodeOnce(o);\n"
            + "  }"
+      },
+      {
+        /* The catalog route would otherwise hand back an empty list (it swallows the adapter
+           error by design), leaving the model dropdown blank. These are Claude Code's own
+           aliases, which go straight through to --model. */
+        what: 'serve a static model list for claude-code',
+        anchor: "  if (!getProviderProfile(id)) return json(404, { models: [], error: 'unknown provider' });",
+        add: "\n  " + M + " if (id === 'claude-code') return json(200, { provider: id, models: ["
+           + "\n    { id: 'opus', name: 'Claude Opus', context_length: 200000, supportsTools: true },"
+           + "\n    { id: 'sonnet', name: 'Claude Sonnet', context_length: 200000, supportsTools: true },"
+           + "\n    { id: 'haiku', name: 'Claude Haiku', context_length: 200000, supportsTools: true }"
+           + "\n  ] });"
       }
     ]
   },
@@ -71,8 +87,8 @@ const FILES = [
         what: 'add the claude-code provider profile',
         anchor: '  const PROFILES = [',
         add: "\n    {\n"
-           + "      // LOVKAR:claude-code - a Claude subscription, no API key. Modelled on the `codex` profile: sign-in\n"
-           + "      // rather than a key, and unmetered. It deliberately has NO case in providers/factory.js —\n"
+           + "      // LOVKAR:claude-code - a Claude subscription, no API key. Modelled on the `codex` profile:\n"
+           + "      // sign-in rather than a key, and unmetered. It deliberately has NO case in providers/factory.js -\n"
            + "      // runOnce short-circuits to the Claude Code runner instead, because no adapter can satisfy a\n"
            + "      // one-turn transport seam for something that owns its own agent loop.\n"
            + "      id: 'claude-code',\n"
@@ -93,17 +109,82 @@ const FILES = [
            + "    },"
       }
     ]
+  },
+  {
+    file: 'frontend/app/app.js',
+    patches: [
+      { what: 'teach normalizeProviderId about claude-code', anchor: NORM_ANCHOR, add: NORM_ADD },
+      {
+        what: 'label claude-code in the provider map',
+        anchor: "      codex: 'GPT',",
+        add: "\n      'claude-code': 'CLAUDE',   " + M
+      },
+      {
+        /* Without this the card opens on the OpenRouter fallback (gpt 5.5), which this
+           provider cannot run. 'sonnet' is a Claude Code alias and goes straight to --model. */
+        what: 'default claude-code to sonnet',
+        anchor: "    const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;",
+        replaceWith: "    if (p === 'claude-code') return 'sonnet';   " + M + "\n    const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;"
+      },
+      {
+        what: 'claude-code needs no key',
+        anchor: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet';",
+        replaceWith: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet' && p !== 'claude-code';   " + M
+      },
+      {
+        what: 'claude-code shows no key box',
+        anchor: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'starnet';",
+        replaceWith: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'starnet' && p !== 'claude-code';   " + M
+      }
+    ]
+  },
+  {
+    file: 'frontend/app/harness.js',
+    patches: [
+      { what: 'teach normalizeProviderId about claude-code', anchor: NORM_ANCHOR, add: NORM_ADD },
+      {
+        /* Same shape as codex/grok/kimi: the credential lives outside the browser (here, in
+           ~/.claude), so selecting the provider IS the local truth. */
+        what: 'claude-code counts as credentialed when selected',
+        anchor: "    if (p === 'codex') return DESKTOP ? !!_configuredByProvider.codex : (getProv() === 'codex');",
+        add: "\n    " + M + " if (p === 'claude-code') return DESKTOP ? !!_configuredByProvider['claude-code'] : (getProv() === 'claude-code');"
+      }
+    ]
+  },
+  {
+    file: 'frontend/app/modeldock.js',
+    patches: [
+      { what: 'teach the dock normalizer about claude-code', anchor: NORM_ANCHOR, add: NORM_ADD }
+    ]
+  },
+  {
+    file: 'frontend/app/overseer-setup.js',
+    patches: [
+      {
+        /* The generic copy tells the user to paste an API key. For this provider there is no
+           key to paste: the credential is the CLI login already sitting in ~/.claude. */
+        what: 'honest connect-card copy for claude-code',
+        anchor: "      : ['grok','kimi','codex'].includes(provider) ? 'Sign in, then choose a model from your account.'",
+        replaceWith: "      : provider === 'claude-code' ? 'Signed in through the Claude Code CLI on this computer - just choose a model.'   " + M + "\n"
+                   + "      : ['grok','kimi','codex'].includes(provider) ? 'Sign in, then choose a model from your account.'"
+      }
+    ]
+  },
+  {
+    file: 'frontend/index.html',
+    patches: [
+      {
+        what: 'add the CLAUDE tile to Connect a brain',
+        anchor: '                <button class="prov" data-prov="anthropic" aria-pressed="false">ANTHROPIC</button>',
+        add: '\n                <!-- LOVKAR:claude-code - the whole point of this fork: Anthropic on a subscription.\n'
+           + '                     Keyless like GROK/KIMI; the credential is the Claude Code CLI login in ~/.claude. -->\n'
+           + '                <button class="prov" data-prov="claude-code" aria-pressed="false">CLAUDE <span class="prov-tag">SIGN IN</span></button>'
+      }
+    ]
   }
 ];
 
 function backupPath(abs) { return abs + '.pre-lovkar'; }
-
-function restoreOrSnapshot(abs) {
-  const bak = backupPath(abs);
-  if (fs.existsSync(bak)) { fs.writeFileSync(abs, fs.readFileSync(bak)); return 'restored'; }
-  fs.writeFileSync(bak, fs.readFileSync(abs));
-  return 'snapshotted';
-}
 
 if (mode === 'revert') {
   let n = 0;
@@ -123,7 +204,6 @@ const staged = [];
 for (const f of FILES) {
   const abs = path.join(repo, f.file);
   if (!fs.existsSync(abs)) { console.error('missing: ' + f.file); problems++; continue; }
-
   const bak = backupPath(abs);
   const pristine = fs.existsSync(bak) ? fs.readFileSync(bak, 'utf8') : fs.readFileSync(abs, 'utf8');
   let src = pristine;
@@ -131,31 +211,28 @@ for (const f of FILES) {
   console.log('\n' + f.file);
   for (const p of f.patches) {
     const n = src.split(p.anchor).length - 1;
-    if (n !== 1) {
-      console.error('  x anchor matched ' + n + ' times (need exactly 1): ' + p.what);
-      problems++;
-      continue;
-    }
-    console.log('  + ' + p.what);
-    src = src.replace(p.anchor, p.anchor + p.add);
+    if (n !== 1) { console.error('  x anchor matched ' + n + ' times (need exactly 1): ' + p.what); problems++; continue; }
+    console.log('  ' + (p.replaceWith ? '~' : '+') + ' ' + p.what);
+    src = p.replaceWith ? src.replace(p.anchor, p.replaceWith) : src.replace(p.anchor, p.anchor + p.add);
   }
-  staged.push({ abs, src, rel: f.file });
+  staged.push({ abs, src, rel: f.file, pristine });
 }
 
-if (problems) { console.error('\n' + problems + ' anchor problem(s) — upstream moved. Nothing written.'); process.exit(1); }
+if (problems) { console.error('\n' + problems + ' anchor problem(s) - upstream moved. Nothing written.'); process.exit(1); }
 if (mode === 'check') { console.log('\n--check: every anchor present and unique, nothing written'); process.exit(0); }
 
 for (const s of staged) {
-  restoreOrSnapshot(s.abs);
+  if (!fs.existsSync(backupPath(s.abs))) fs.writeFileSync(backupPath(s.abs), s.pristine);
   fs.writeFileSync(s.abs, s.src);
 }
 
 let bad = 0;
 for (const s of staged) {
+  if (!/\.(js|mjs|cjs)$/.test(s.abs)) continue;   // html has no node syntax check
   try { execFileSync(process.execPath, ['--check', s.abs], { stdio: 'pipe' }); }
   catch (e) {
     bad++;
-    fs.writeFileSync(s.abs, fs.readFileSync(backupPath(s.abs)));
+    fs.writeFileSync(s.abs, s.pristine);
     console.error('\nx syntax check failed for ' + s.rel + ', reverted:\n' + String(e.stderr || e.message));
   }
 }

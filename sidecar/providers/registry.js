@@ -24,8 +24,8 @@
   //     legitimately exceed the hosted-provider default (local model loading in Ollama).
   const PROFILES = [
     {
-      // LOVKAR:claude-code - a Claude subscription, no API key. Modelled on the `codex` profile: sign-in
-      // rather than a key, and unmetered. It deliberately has NO case in providers/factory.js —
+      // LOVKAR:claude-code - a Claude subscription, no API key. Modelled on the `codex` profile:
+      // sign-in rather than a key, and unmetered. It deliberately has NO case in providers/factory.js -
       // runOnce short-circuits to the Claude Code runner instead, because no adapter can satisfy a
       // one-turn transport seam for something that owns its own agent loop.
       id: 'claude-code',

@@ -20,6 +20,7 @@ window.OverseerSetup = (() => {
       : provider === 'ollama' ? 'Choose a model installed on this computer.'
       : provider === 'custom' ? 'Enter your endpoint, then choose or enter a model ID.'
       : provider === 'openai' ? 'Sign in with ChatGPT or add an OpenAI API key.'
+      : provider === 'claude-code' ? 'Signed in through the Claude Code CLI on this computer - just choose a model.'   /* LOVKAR:claude-code */
       : ['grok','kimi','codex'].includes(provider) ? 'Sign in, then choose a model from your account.'
       : 'Add your provider’s API key, then choose a model.';
     const logo = el('ov-connection-logo');

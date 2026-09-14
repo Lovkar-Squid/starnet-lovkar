@@ -88,6 +88,7 @@ const ModelDock = (() => {
     if (p === 'codex' || p === 'openai-codex') return 'codex';
     if (p === 'openai' || p === 'openai-api') return 'openai';
     if (p === 'anthropic' || p === 'claude') return 'anthropic';
+    /* LOVKAR:claude-code */ if (p === 'claude-code' || p === 'claudecode' || p === 'claude-max' || p === 'anthropic-oauth') return 'claude-code';
     if (p === 'gemini' || p === 'google' || p === 'google-ai' || p === 'google-gemini') return 'gemini';
     // grok/kimi are their OWN keyless OAuth providers now — NOT aliases for the xAI (API KEY) provider.
     if (p === 'grok' || p === 'grok-oauth' || p === 'supergrok') return 'grok';

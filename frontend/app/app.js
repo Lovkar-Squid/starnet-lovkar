@@ -723,6 +723,7 @@ const App = (() => {
     provider = normalizeProviderId(provider);
     const map = {
       codex: 'GPT',
+      'claude-code': 'CLAUDE',   /* LOVKAR:claude-code */
       grok: 'GROK',
       kimi: 'KIMI',
       openrouter: 'OPENROUTER',
@@ -748,6 +749,7 @@ const App = (() => {
     if (p === 'codex' || p === 'openai-codex') return 'codex';
     if (p === 'openai' || p === 'openai-api') return 'openai';
     if (p === 'anthropic' || p === 'claude') return 'anthropic';
+    /* LOVKAR:claude-code */ if (p === 'claude-code' || p === 'claudecode' || p === 'claude-max' || p === 'anthropic-oauth') return 'claude-code';
     if (p === 'gemini' || p === 'google' || p === 'google-ai' || p === 'google-gemini') return 'gemini';
     // grok/kimi are their OWN keyless OAuth (subscription) providers — never aliases for the API-key ones
     // (mirrors harness.js + modeldock.js normalize; 'xai' stays the API-key Grok).
@@ -769,11 +771,11 @@ const App = (() => {
   }
   function providerNeedsKey(provider) {
     const p = normalizeProviderId(provider);
-    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet';
+    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet' && p !== 'claude-code';   /* LOVKAR:claude-code */
   }
   function providerUsesKeyBox(provider) {
     const p = normalizeProviderId(provider);
-    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'starnet';
+    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'starnet' && p !== 'claude-code';   /* LOVKAR:claude-code */
   }
   function providerNeedsBaseUrl(provider) {
     return normalizeProviderId(provider) === 'custom';
@@ -821,6 +823,7 @@ const App = (() => {
   // stranding the user on an empty required field. Reuses the curated FALLBACK_MODELS lineup (first = best pick).
   function defaultModelFor(provider) {
     const p = normalizeProviderId(provider);
+    if (p === 'claude-code') return 'sonnet';   /* LOVKAR:claude-code */
     const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;
     return (list && list[0]) || 'anthropic/claude-sonnet-4.6';
   }

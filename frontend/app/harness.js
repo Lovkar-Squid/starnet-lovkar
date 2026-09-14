@@ -293,6 +293,7 @@ const Harness = (() => {
     if (p === 'codex' || p === 'openai-codex') return 'codex';
     if (p === 'openai' || p === 'openai-api') return 'openai';
     if (p === 'anthropic' || p === 'claude') return 'anthropic';
+    /* LOVKAR:claude-code */ if (p === 'claude-code' || p === 'claudecode' || p === 'claude-max' || p === 'anthropic-oauth') return 'claude-code';
     if (p === 'gemini' || p === 'google' || p === 'google-ai' || p === 'google-gemini') return 'gemini';
     // grok/kimi are their OWN keyless OAuth (subscription) providers — NOT aliases for the API-key
     // providers. Folding 'grok' into 'xai' here silently rewrote every GROK OAUTH selection into the
@@ -363,6 +364,7 @@ const Harness = (() => {
   function hasStoredCredential(provider) {
     const p = normalizeProviderId(provider);
     if (p === 'codex') return DESKTOP ? !!_configuredByProvider.codex : (getProv() === 'codex');
+    /* LOVKAR:claude-code */ if (p === 'claude-code') return DESKTOP ? !!_configuredByProvider['claude-code'] : (getProv() === 'claude-code');
     // grok/kimi mirror codex: OAuth tokens live sidecar-side, so the desktop configured map (fed by the boot
     // probe + app.js's status refresh) is the only local truth; in the browser the active-provider pick stands in.
     if (p === 'grok' || p === 'kimi') return DESKTOP ? !!_configuredByProvider[p] : (getProv() === p);
