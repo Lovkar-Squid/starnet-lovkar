@@ -145,6 +145,18 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
      'a half-marker (CLAUDE.md alone) is NOT a checkout');
 }
 
+/* ---- the orchestrator: granted to the lead run, not placed on the floor ---- */
+{
+  // resolveClaudeCaps only maps what it is given; index.js decides whether a lead run gets one.
+  // What must hold HERE is that the object, however it arrives, grants Task and nothing else.
+  const withOrch = caps([{ objectType: 'cabinet' }, { objectType: 'orchestrator' }]);
+  const without = caps([{ objectType: 'cabinet' }]);
+  ok(withOrch.tools.indexOf('Task') >= 0, 'orchestrator grants Task');
+  ok(without.tools.indexOf('Task') < 0, 'and without it there is no Task by any route');
+  eq(withOrch.tools.filter(t => without.tools.indexOf(t) < 0), ['Task'], 'it grants Task and nothing besides');
+  eq(withOrch.cwd, without.cwd, 'and it does not widen the folder boundary');
+}
+
 /* ---- the SECOND dial: FULL POWER drops the boundary, never adds a tool ---- */
 {
   const off = resolveClaudeCaps({ objects: [], vaultRoot: VAULT, workdir: WORK });

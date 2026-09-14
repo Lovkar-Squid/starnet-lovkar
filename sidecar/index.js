@@ -15026,6 +15026,15 @@ async function runOnce(o) {
         try { _lovkarPlaced = require('./capability/saved-placement.js').savedPlacement(saveStore.load('agent'), String(o.agentId || 'agent')); }
         catch (_) { _lovkarPlaced = []; }
       }
+      // THE ORCHESTRATOR IS NOT A FLOOR PROP. capability/office.js grants it to the LEAD run
+      // (the one the Commander is driving from the browser) and never to a delegated worker;
+      // there is no sprite for it, so it can never arrive through savedPlacement. Dropping that
+      // rule here left a claude-code run with no Task tool by ANY route - the agent noticed the
+      // gap and proposed placing one, which failed as 'unknown object type'. Mirror the rule
+      // instead: same condition, same object, so lead runs match the native path exactly.
+      if ((o.lead || o.ownerTrusted) && !_lovkarPlaced.some(e => e && e.objectType === 'orchestrator')) {
+        _lovkarPlaced = _lovkarPlaced.concat([{ instanceId: 'orch1', objectType: 'orchestrator' }]);
+      }
       // The SECOND dial: FULL POWER drops the folder boundary. It can never add a tool the
       // floor did not grant -- --tools is applied before permissions are consulted at all.
       const _lovkarFull = FULL_ACCESS || masterBypassOn()
