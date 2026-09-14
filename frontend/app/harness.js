@@ -339,7 +339,7 @@ const Harness = (() => {
     const p = normalizeProviderId(provider);
     // codex/grok/kimi authenticate by device-code OAuth tokens held sidecar-side; ollama/custom are keyless
     // endpoints; starnet's bearer is the linked device token, which the user never sees, let alone pastes.
-    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet';
+    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet' && p !== 'claude-code';   /* LOVKAR:claude-code */
   }
   function configured(provider) {
     const p = normalizeProviderId(provider);

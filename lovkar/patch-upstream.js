@@ -151,6 +151,15 @@ const FILES = [
     patches: [
       { what: 'teach normalizeProviderId about claude-code', anchor: NORM_ANCHOR, add: NORM_ADD },
       {
+        /* THE THIRD COPY. app.js has two key predicates and harness.js has its own, and this
+           one is the pre-flight guard that actually throws 'no API key set' on WAKE. Patching
+           the app.js pair was not enough: the card rendered correctly, the catalog was right,
+           and the awakening still died on a key that does not exist for this provider. */
+        what: 'claude-code needs no key (harness pre-flight guard)',
+        anchor: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet';",
+        replaceWith: "    return p !== 'codex' && p !== 'grok' && p !== 'kimi' && p !== 'ollama' && p !== 'custom' && p !== 'starnet' && p !== 'claude-code';   " + M
+      },
+      {
         /* Same shape as codex/grok/kimi: the credential lives outside the browser (here, in
            ~/.claude), so selecting the provider IS the local truth. */
         what: 'claude-code counts as credentialed when selected',
