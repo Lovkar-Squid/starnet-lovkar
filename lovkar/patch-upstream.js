@@ -66,7 +66,18 @@ const FILES = [
         anchor: "  const { key, system: rawSystem, messages = [], agentId = 'agent', signal, runId } = o;",
         add: "\n  " + M + " {\n"
            + "    const _lovkarProv = normalizeProvider(o.provider || ((agentRoster.get(String(o.agentId || '')) || {}).provider) || '');\n"
-           + "    if (_lovkarProv === 'claude-code') return lovkarRunOnce.runClaudeCodeOnce(o);\n"
+           + "    if (_lovkarProv === 'claude-code') {\n"
+           + "      // THE MOAT, carried across the short-circuit. o.extraObjects is handleRun's already-resolved\n"
+           + "      // room snapshot, and an EXPLICITLY EMPTY one must never be refilled from the durable save --\n"
+           + "      // that is how reclaimed gear would come back to life. Only an ABSENT one (cron, hub, worker)\n"
+           + "      // falls back to the saved floor, which is the same source the native path reads.\n"
+           + "      let _lovkarPlaced = o.extraObjects;\n"
+           + "      if (!Array.isArray(_lovkarPlaced)) {\n"
+           + "        try { _lovkarPlaced = require('./capability/saved-placement.js').savedPlacement(saveStore.load('agent'), String(o.agentId || 'agent')); }\n"
+           + "        catch (_) { _lovkarPlaced = []; }\n"
+           + "      }\n"
+           + "      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced }));\n"
+           + "    }\n"
            + "  }"
       },
       {

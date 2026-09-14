@@ -16,6 +16,13 @@
    browser, an assembler for the hub. Same names, same payloads as a native run, so the
    station renders it identically.
 
+   WHAT THE SHORT-CIRCUIT MUST NOT DROP (the 2026-09-14 regression, found by the agent itself
+   and written up in vault/notes/claude-code-runs-ignore-room-tools.md): skipping the host also
+   skipped THE MOAT, so the room's objects and the authority setting decided nothing and one
+   hardcoded tool list applied to every run. `o.placedObjects` now carries the room in, and
+   claudecode-caps.js turns it into the actual --tools/--restricted gate. A run must never
+   again grant more — or less — than what is on the floor.
+
    LIMITATION, stated rather than hidden: multi-turn history is flattened into the prompt.
    Claude Code keeps its own session and `--resume <id>` would carry context properly; wiring
    that means threading a session id through the run record, which is its own change.
@@ -25,6 +32,8 @@
 const path = require('path');
 const { makeClaudeCodeRunner } = require('./claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
+const { resolveVaultRoot } = require('../vault/vault-root.js');
+const { resolveClaudeCaps, capsPrompt } = require('./claudecode-caps.js');
 const { sharedRateLimitGate } = require('./ratelimit-gate.js');
 
 const MAX_PROMPT = 60000;
@@ -63,7 +72,11 @@ function makeClaudeCodeRunOnce(deps) {
   deps = deps || {};
   const cwd = deps.cwd || process.cwd();
   const runner = makeClaudeCodeRunner({ claudePath: deps.claudePath, spawn: deps.spawn });
-  const vault = makeVault({ root: deps.vaultRoot || path.join(cwd, 'vault') });
+  // ONE vault for every copy of this sidecar. Derived from the checkout rather than from cwd,
+  // because the packaged desktop build runs from src-tauri/target/release and used to keep a
+  // second, invisible memory there.
+  const vaultRoot = deps.vaultRoot ? path.resolve(deps.vaultRoot) : resolveVaultRoot({ cwd });
+  const vault = makeVault({ root: vaultRoot });
   try { vault.init(); } catch (_) {}
 
   async function runClaudeCodeOnce(o) {
@@ -80,11 +93,26 @@ function makeClaudeCodeRunOnce(deps) {
       return { reason: 'empty', messages: o.messages || [], usd: 0, turns: 0 };
     }
 
+    /* THE MOAT. o.placedObjects is the agent's real room, read off the durable save by the
+       caller — never from prompt text or model output, which is the whole point. An explicit
+       o.allowedTools still wins, so a test or an internal caller can pin a set. */
+    const caps = resolveClaudeCaps({
+      objects: o.placedObjects || [],
+      vaultRoot,
+      workdir: o.workdir || cwd
+    });
+    const tools = o.allowedTools ? [].concat(o.allowedTools) : caps.tools;
+
+    // Visible, once per run, on the sidecar's own log: a capability decision that happens in
+    // silence is one nobody can audit — which is exactly how the last one went unnoticed.
+    try { console.log('[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary); } catch (_) {}
+
     // The harness's system prompt rides as an append, not a replace: Claude Code's own system
     // prompt is what makes its tools behave, and replacing it would break the thing we came for.
     const appendSystemPrompt = [
       String(o.system || '').trim(),
-      o.vault === false ? '' : vault.protocolPrompt('vault/notes')
+      capsPrompt(caps),
+      o.vault === false ? '' : vault.protocolPrompt(vault.notesDir)
     ].filter(Boolean).join('\n\n');
 
     let summary = null, failed = null;
@@ -93,9 +121,12 @@ function makeClaudeCodeRunOnce(deps) {
         agentId, runId,
         trigger: ['directive', 'schedule', 'event', 'loop', 'nightshift'].indexOf(o.trigger) >= 0 ? o.trigger : 'directive',
         prompt,
-        cwd: o.workdir || cwd,
+        cwd: caps.cwd,
+        addDirs: caps.addDirs,
+        tools,
+        allowedTools: tools,
+        restricted: o.restricted !== false,
         model: o.model && String(o.model).trim() ? String(o.model).trim() : undefined,
-        allowedTools: o.allowedTools || ['Read', 'Glob', 'Grep', 'Write(vault/**)', 'Edit(vault/**)'],
         disallowedTools: o.disallowedTools,
         permissionMode: o.permissionMode || 'dontAsk',
         appendSystemPrompt,
@@ -126,11 +157,12 @@ function makeClaudeCodeRunOnce(deps) {
       durationMs: endedAt - startedAt,
       parentRunId: o.parentRunId || '',
       error: failed || undefined,
-      unmetered: true
+      unmetered: true,
+      caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, unmapped: caps.unmapped }
     };
   }
 
-  return { runClaudeCodeOnce, vault, flattenMessages };
+  return { runClaudeCodeOnce, vault, vaultRoot, flattenMessages };
 }
 
 module.exports = { makeClaudeCodeRunOnce, flattenMessages };

@@ -2,7 +2,7 @@
 
    Spawns Claude Code in headless streaming mode, splits its NDJSON stdout into objects,
    feeds them to the PURE translator, and emits the resulting U.bus events. All policy
-   lives in the translator; everything here is process plumbing.
+   lives in the translator and in claudecode-caps.js; everything here is process plumbing.
 
      makeClaudeCodeRunner({ spawn, clock, claudePath }) -> { run(opts) -> Promise<summary> }
 
@@ -11,7 +11,9 @@
    truncated `-p` to its first word on the very first spike — a run that still produced a
    perfectly valid stream and a confidently wrong answer. child_process.spawn(cmd, argv)
    escapes each argument itself, on Windows too. Never reintroduce a shell here: no
-   `shell: true`, no string concatenation, no cmd /c.
+   `shell: true`, no string concatenation, no cmd /c. (`claudePath` must also name the NATIVE
+   claude.exe rather than a .cmd shim — Node >= 20 refuses to spawn .cmd without a shell and
+   fails with EINVAL.)
 
    AUTH: the subscription login in ~/.claude/.credentials.json is inherited from the
    environment, so `env` is passed through untouched by default and `--bare` is NEVER
@@ -32,6 +34,28 @@
 
   const STDERR_KEEP = 4000;
 
+  /* THE GATE, and why it is spelled this way.
+
+     The obvious spelling does not work. Measured against this CLI build with
+     lovkar/probe-permissions.js (7 cases), a path-qualified allow rule — `Write(vault/**)`,
+     `Write(D:/…/vault/**)`, the `//` absolute prefix, backslashes, with and without
+     --add-dir — is refused EVERY time; only the bare tool name grants. That is precisely the
+     bug that denied NOVA her own memory on 2026-09-14 while the config looked correct.
+
+     So the gate is built from the two knobs that were measured to work
+     (lovkar/probe-restricted.js, 5 cases including the escapes that must fail):
+
+       --tools       the built-in tools that EXIST for this run. Anything not named is gone,
+                     not merely unapproved — a model cannot argue its way to a tool that was
+                     never registered.
+       --restricted  confines the file tools to cwd + every --add-dir, refuses
+                     bypassPermissions, and ignores user/project settings files so a stray
+                     ~/.claude/settings.json cannot widen a run behind the Commander's back.
+       --allowedTools  the same names again, so nothing stops to ask for approval that
+                       nobody is there to give.
+
+     --permission-mode dontAsk + --permission-prompts none is the unattended posture: no
+     prompt can be answered, so anything not granted above is denied rather than hanging. */
   function buildArgs(o) {
     const a = ['-p', String(o.prompt == null ? '' : o.prompt),
                '--output-format', 'stream-json',
@@ -40,11 +64,13 @@
     if (o.model) a.push('--model', String(o.model));
     if (o.resume) a.push('--resume', String(o.resume));
     if (Number.isFinite(o.maxTurns)) a.push('--max-turns', String(o.maxTurns));
+
+    if (o.restricted !== false) a.push('--restricted');
+    if (o.tools && o.tools.length) a.push('--tools', [].concat(o.tools).join(','));
     if (o.allowedTools && o.allowedTools.length) a.push('--allowedTools', [].concat(o.allowedTools).join(','));
-    // NOTE (phase 2): --allowedTools PRE-APPROVES, it does not restrict; read-only tools run
-    // regardless. Real capability gating needs the deny side, which is why it is a first-class
-    // option here rather than an afterthought.
     if (o.disallowedTools && o.disallowedTools.length) a.push('--disallowedTools', [].concat(o.disallowedTools).join(','));
+    for (const d of (o.addDirs || [])) { if (d) a.push('--add-dir', String(d)); }
+
     if (o.mcpConfig) a.push('--mcp-config', String(o.mcpConfig));
     a.push('--permission-mode', String(o.permissionMode || 'dontAsk'));
     a.push('--permission-prompts', 'none');   // unattended: nothing here can answer a prompt
