@@ -823,7 +823,7 @@ const App = (() => {
   // stranding the user on an empty required field. Reuses the curated FALLBACK_MODELS lineup (first = best pick).
   function defaultModelFor(provider) {
     const p = normalizeProviderId(provider);
-    if (p === 'claude-code') return 'sonnet';   /* LOVKAR:claude-code */
+    if (p === 'claude-code') return 'sonnet[1m]';   /* LOVKAR:claude-code */
     const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;
     return (list && list[0]) || 'anthropic/claude-sonnet-4.6';
   }

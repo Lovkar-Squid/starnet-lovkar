@@ -72,11 +72,17 @@ const FILES = [
            aliases, which go straight through to --model. */
         what: 'serve a static model list for claude-code',
         anchor: "  if (!getProviderProfile(id)) return json(404, { models: [], error: 'unknown provider' });",
-        add: "\n  " + M + " if (id === 'claude-code') return json(200, { provider: id, models: ["
-           + "\n    { id: 'opus', name: 'Claude Opus', context_length: 200000, supportsTools: true },"
-           + "\n    { id: 'sonnet', name: 'Claude Sonnet', context_length: 200000, supportsTools: true },"
-           + "\n    { id: 'haiku', name: 'Claude Haiku', context_length: 200000, supportsTools: true }"
-           + "\n  ] });"
+        add: "\n  " + M + " if (id === 'claude-code') {"
+           + "\n    // Claude Code aliases. The `[1m]` suffix is a real variant selector, verified against the"
+           + "\n    // CLI: `opus` reports claude-opus-5 while `opus[1m]` reports claude-opus-5[1m]. The window"
+           + "\n    // is DERIVED from that marker rather than typed twice, so the two can never disagree."
+           + "\n    const win = a => (/\\[1m\\]$/.test(a) ? 1000000 : 200000);"
+           + "\n    const mk = (a, n) => ({ id: a, name: n + (/\\[1m\\]$/.test(a) ? ' (1M)' : ''), context_length: win(a), max_completion_tokens: null, supportsTools: true });"
+           + "\n    return json(200, { provider: id, models: ["
+           + "\n      mk('sonnet[1m]', 'Claude Sonnet'), mk('opus[1m]', 'Claude Opus'),"
+           + "\n      mk('sonnet', 'Claude Sonnet'), mk('opus', 'Claude Opus'), mk('haiku', 'Claude Haiku')"
+           + "\n    ] });"
+           + "\n  }"
       }
     ]
   },
@@ -121,10 +127,12 @@ const FILES = [
       },
       {
         /* Without this the card opens on the OpenRouter fallback (gpt 5.5), which this
-           provider cannot run. 'sonnet' is a Claude Code alias and goes straight to --model. */
-        what: 'default claude-code to sonnet',
+           provider cannot run. The [1m] variant is the point: plain 'sonnet' is the 200k
+           model, 'sonnet[1m]' is the million-token one. Sonnet rather than Opus because a
+           station runs many agents against one subscription allowance. */
+        what: "default claude-code to sonnet[1m]",
         anchor: "    const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;",
-        replaceWith: "    if (p === 'claude-code') return 'sonnet';   " + M + "\n    const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;"
+        replaceWith: "    if (p === 'claude-code') return 'sonnet[1m]';   " + M + "\n    const list = FALLBACK_MODELS[p] || FALLBACK_MODELS.openrouter;"
       },
       {
         what: 'claude-code needs no key',

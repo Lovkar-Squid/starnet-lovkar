@@ -19462,11 +19462,17 @@ async function handleProviderModels(req, res) {
   } catch (_) {}
   const id = normalizeProvider(providerId);
   if (!getProviderProfile(id)) return json(404, { models: [], error: 'unknown provider' });
-  /* LOVKAR:claude-code */ if (id === 'claude-code') return json(200, { provider: id, models: [
-    { id: 'opus', name: 'Claude Opus', context_length: 200000, supportsTools: true },
-    { id: 'sonnet', name: 'Claude Sonnet', context_length: 200000, supportsTools: true },
-    { id: 'haiku', name: 'Claude Haiku', context_length: 200000, supportsTools: true }
-  ] });
+  /* LOVKAR:claude-code */ if (id === 'claude-code') {
+    // Claude Code aliases. The `[1m]` suffix is a real variant selector, verified against the
+    // CLI: `opus` reports claude-opus-5 while `opus[1m]` reports claude-opus-5[1m]. The window
+    // is DERIVED from that marker rather than typed twice, so the two can never disagree.
+    const win = a => (/\[1m\]$/.test(a) ? 1000000 : 200000);
+    const mk = (a, n) => ({ id: a, name: n + (/\[1m\]$/.test(a) ? ' (1M)' : ''), context_length: win(a), max_completion_tokens: null, supportsTools: true });
+    return json(200, { provider: id, models: [
+      mk('sonnet[1m]', 'Claude Sonnet'), mk('opus[1m]', 'Claude Opus'),
+      mk('sonnet', 'Claude Sonnet'), mk('opus', 'Claude Opus'), mk('haiku', 'Claude Haiku')
+    ] });
+  }
   try {
     const models = await listModelsForProvider(id, { baseUrl });
     json(200, { provider: id, models: models.map(publicModel) });
