@@ -24,6 +24,7 @@ const os = require('os');
 const fs = require('fs');
 const { makeClaudeCodeRunner } = require('../runners/claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
+const { resolveVaultRoot } = require('../vault/vault-root.js');
 const { sharedRateLimitGate } = require('../runners/ratelimit-gate.js');
 
 const MAX_BODY = 1 << 16;
@@ -64,9 +65,12 @@ function makeLovkarRun(deps) {
     claudePath: resolveClaudePath(deps.claudePath)
   });
 
-  /* The agents' markdown memory. Lives beside the code so `cwd` already reaches it — no
-     --add-dir needed — and so `git log` over the repo shows how beliefs changed. */
-  const vault = makeVault({ root: deps.vaultRoot || path.join(defaultCwd, 'vault') });
+  /* The agents' markdown memory — ONE vault for every copy of this sidecar, resolved from the
+     checkout rather than from cwd. Deriving it from cwd is what gave the packaged desktop
+     build a second, invisible memory under src-tauri/target/release (2026-09-14); this route
+     kept doing it for a while after the runner stopped, and quietly recreated that folder on
+     every boot. */
+  const vault = makeVault({ root: deps.vaultRoot ? path.resolve(deps.vaultRoot) : resolveVaultRoot({ cwd: defaultCwd }) });
   try { vault.init(); } catch (_) {}
 
   const inflight = new Map();   // runId -> AbortController
