@@ -76,7 +76,11 @@ const FILES = [
            + "        try { _lovkarPlaced = require('./capability/saved-placement.js').savedPlacement(saveStore.load('agent'), String(o.agentId || 'agent')); }\n"
            + "        catch (_) { _lovkarPlaced = []; }\n"
            + "      }\n"
-           + "      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced }));\n"
+           + "      // The SECOND dial: FULL POWER drops the folder boundary. It can never add a tool the\n"
+           + "      // floor did not grant -- --tools is applied before permissions are consulted at all.\n"
+           + "      const _lovkarFull = FULL_ACCESS || masterBypassOn()\n"
+           + "        || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');\n"
+           + "      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull }));\n"
            + "    }\n"
            + "  }"
       },

@@ -67,7 +67,30 @@ async function go() {
   say(!!r3.caps && r3.caps.tools.indexOf('Bash') >= 0, 'placing a workbench puts Bash in the run');
   say(/hello/.test(r3.text || ''), 'and the command actually runs', JSON.stringify((r3.text || '').slice(0, 140)));
 
-  console.log('\n' + (fail ? fail + ' check(s) FAILED' : 'all checks passed — the floor decides'));
+  /* 4 — FULL POWER must drop the boundary WITHOUT manufacturing a tool */
+  const r4 = await once.runClaudeCodeOnce({
+    agentId: 'agent', runId: 'verify4', model: 'sonnet', placedObjects: HIS_ROOM, workdir: REPO, fullPower: true,
+    messages: [{ role: 'user', content: 'Run the shell command `echo hello`. If you have no tool that can run shell commands, reply exactly NOTOOL and nothing else.' }],
+    emit: () => {}
+  });
+  say(!!r4.caps && r4.caps.confined === false, 'FULL POWER runs unconfined');
+  say(!!r4.caps && r4.caps.tools.indexOf('Bash') < 0, 'but grants NO shell that the floor did not — authority is not a capability');
+  say(/NOTOOL/i.test(r4.text || '') || /no .*(shell|bash|command)/i.test(r4.text || ''),
+      'and the agent still has nothing to run it with', JSON.stringify((r4.text || '').slice(0, 140)));
+
+  /* 5 — and with the workbench placed, the boundary really is gone */
+  const outside = path.join(REPO, 'lovkar', '_verify_unconfined.md');
+  try { fs.unlinkSync(outside); } catch (_) {}
+  const r5 = await once.runClaudeCodeOnce({
+    agentId: 'agent', runId: 'verify5', model: 'sonnet', placedObjects: HIS_ROOM.concat([{ objectType: 'workbench' }]), workdir: REPO, fullPower: true,
+    messages: [{ role: 'user', content: 'Use the Write tool to create the file ' + outside.split('\\').join('/') + ' containing exactly the word ok. Then reply DONE.' }],
+    emit: () => {}
+  });
+  const escaped = fs.existsSync(outside);
+  say(escaped, 'at full power a write outside the vault succeeds — the boundary is genuinely off', JSON.stringify((r5.text || '').slice(0, 140)));
+  try { fs.unlinkSync(outside); } catch (_) {}
+
+  console.log('\n' + (fail ? fail + ' check(s) FAILED' : 'all checks passed — the floor decides which tools, authority decides the boundary'));
   process.exit(fail ? 1 : 0);
 }
 

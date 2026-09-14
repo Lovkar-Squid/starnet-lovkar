@@ -15022,7 +15022,11 @@ async function runOnce(o) {
         try { _lovkarPlaced = require('./capability/saved-placement.js').savedPlacement(saveStore.load('agent'), String(o.agentId || 'agent')); }
         catch (_) { _lovkarPlaced = []; }
       }
-      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced }));
+      // The SECOND dial: FULL POWER drops the folder boundary. It can never add a tool the
+      // floor did not grant -- --tools is applied before permissions are consulted at all.
+      const _lovkarFull = FULL_ACCESS || masterBypassOn()
+        || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');
+      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull }));
     }
   }
   const runStartedAt = Date.now();

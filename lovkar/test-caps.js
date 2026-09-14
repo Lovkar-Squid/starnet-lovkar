@@ -145,5 +145,28 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
      'a half-marker (CLAUDE.md alone) is NOT a checkout');
 }
 
+/* ---- the SECOND dial: FULL POWER drops the boundary, never adds a tool ---- */
+{
+  const off = resolveClaudeCaps({ objects: [], vaultRoot: VAULT, workdir: WORK });
+  ok(off.confined === true, 'confined is the DEFAULT');
+
+  const on = resolveClaudeCaps({ objects: [], vaultRoot: VAULT, workdir: WORK, fullPower: true });
+  ok(on.confined === false, 'FULL POWER turns the boundary off');
+  eq(on.cwd, WORK, 'and starts the run from the project rather than the vault');
+
+  // The property that matters most: authority must never manufacture a capability.
+  eq(on.tools, off.tools, 'FULL POWER grants NO extra tool — an empty room is still an empty room');
+  ok(on.tools.indexOf('Bash') < 0, 'specifically: no shell appears just because authority is high');
+  ok(on.tools.indexOf('WebSearch') < 0, 'and no web either');
+
+  const both = resolveClaudeCaps({ objects: [{ objectType: 'workbench' }], vaultRoot: VAULT, workdir: WORK, fullPower: true });
+  ok(both.tools.indexOf('Bash') >= 0, 'a PLACED workbench still grants the shell at full power');
+  ok(both.confined === false, 'and it runs unconfined');
+
+  ok(/UNCONFINED/.test(on.summary), 'the log line says so plainly');
+  ok(/NO folder boundary/.test(capsPrompt(on)), 'and so does the prompt');
+  ok(/refused by the host/.test(capsPrompt(off)), 'while a confined run is told the host enforces it');
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

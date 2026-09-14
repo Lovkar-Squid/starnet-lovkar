@@ -99,7 +99,8 @@ function makeClaudeCodeRunOnce(deps) {
     const caps = resolveClaudeCaps({
       objects: o.placedObjects || [],
       vaultRoot,
-      workdir: o.workdir || cwd
+      workdir: o.workdir || cwd,
+      fullPower: !!o.fullPower
     });
     const tools = o.allowedTools ? [].concat(o.allowedTools) : caps.tools;
 
@@ -125,10 +126,11 @@ function makeClaudeCodeRunOnce(deps) {
         addDirs: caps.addDirs,
         tools,
         allowedTools: tools,
-        restricted: o.restricted !== false,
+        // The CLI refuses --restricted together with bypassPermissions, so the two move as one.
+        restricted: o.restricted !== false && caps.confined,
         model: o.model && String(o.model).trim() ? String(o.model).trim() : undefined,
         disallowedTools: o.disallowedTools,
-        permissionMode: o.permissionMode || 'dontAsk',
+        permissionMode: o.permissionMode || (caps.confined ? 'dontAsk' : 'bypassPermissions'),
         appendSystemPrompt,
         emit,
         signal: o.signal,
@@ -158,7 +160,7 @@ function makeClaudeCodeRunOnce(deps) {
       parentRunId: o.parentRunId || '',
       error: failed || undefined,
       unmetered: true,
-      caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, unmapped: caps.unmapped }
+      caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, confined: caps.confined, unmapped: caps.unmapped }
     };
   }
 

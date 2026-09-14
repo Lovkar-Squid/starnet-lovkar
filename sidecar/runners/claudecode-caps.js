@@ -5,8 +5,8 @@
    was in the agent's room, which made the floor a decoration. This module is the projection
    that makes it mean something again.
 
-     resolveClaudeCaps({ objects, vaultRoot, workdir }) ->
-       { tools[], cwd, addDirs[], allowed[], grantedBy{}, unmapped[], summary }
+     resolveClaudeCaps({ objects, vaultRoot, workdir, fullPower }) ->
+       { tools[], cwd, addDirs[], confined, allowed[], grantedBy{}, unmapped[], summary }
 
    Pure: same inputs -> same output. No fs, no spawn, no env.
 
@@ -25,6 +25,18 @@
    so "read the whole project but write only the vault" is not expressible. A notebook alone
    therefore means vault-only, reads included: a mind with a diary and no filing cabinet. Add
    the cabinet and the project opens up.
+
+   TWO DIALS, NOT ONE. The floor decides WHICH TOOLS exist; the Commander's FULL POWER
+   posture decides WHETHER THE FILE TOOLS ARE CONFINED. They are independent on purpose:
+   --tools removes a tool from the built-in set before permissions are consulted at all, so
+   the floor keeps its meaning at every authority level — FULL POWER can never hand an agent
+   a workbench that is not on the floor. What it does drop is --restricted, and with it the
+   folder boundary, because the CLI refuses the two together:
+   `Error: bypassPermissions not supported in restricted mode`.
+
+   Confined is the default. Turning it off means a placed cabinet stops meaning "this project"
+   and starts meaning "any folder on this machine", and a placed workbench runs shell commands
+   with no path boundary at all.
 
    THE ONE DELIBERATE DIVERGENCE FROM UPSTREAM'S MOAT. The vault is a freebie: every run can
    read and write it even with an empty room. Upstream gives `compute` free so an agent can
@@ -111,7 +123,9 @@
 
     // The working root IS the write boundary under --restricted, so choosing cwd is choosing
     // the moat. Without a cabinet the run lives inside the vault and can reach nothing else.
-    const wantsWorkdir = !!roots.workdir && !!workdir;
+    // FULL POWER removes the boundary rather than widening it, so it starts from the project.
+    const confined = !o.fullPower;
+    const wantsWorkdir = (!!roots.workdir || !confined) && !!workdir;
     const cwd = wantsWorkdir ? workdir : (vaultRoot || workdir);
     const addDirs = [];
     if (vaultRoot && !within(vaultRoot, cwd)) addDirs.push(vaultRoot);
@@ -119,10 +133,11 @@
     const summary = [
       'placed: ' + (types.length ? types.join(', ') : '(nothing)'),
       'tools: ' + list.join(', '),
-      'can write in: ' + [cwd].concat(addDirs).join(' + ')
+      (confined ? 'can write in: ' + [cwd].concat(addDirs).join(' + ')
+                : 'UNCONFINED (FULL POWER) — no folder boundary, running from ' + cwd)
     ].join(' | ');
 
-    return { tools: list, allowed: list.slice(), cwd, addDirs, roots: Object.keys(roots), grantedBy, unmapped, placed: types, summary };
+    return { tools: list, allowed: list.slice(), cwd, addDirs, confined, roots: Object.keys(roots), grantedBy, unmapped, placed: types, summary };
   }
 
   /* The block appended to the system prompt. An agent that knows its real reach stops burning
@@ -132,10 +147,17 @@
     const lines = [
       'CAPABILITIES THIS RUN — decided by what the Commander placed in your room, not by you.',
       '',
-      'Tools you actually have: ' + caps.tools.join(', '),
-      'Folders you may read and write: ' + [caps.cwd].concat(caps.addDirs).join(' , '),
-      'Everything outside those folders is refused by the host, not by your judgement.'
+      'Tools you actually have: ' + caps.tools.join(', ')
     ];
+    if (caps.confined) {
+      lines.push('Folders you may read and write: ' + [caps.cwd].concat(caps.addDirs).join(' , '),
+                 'Everything outside those folders is refused by the host, not by your judgement.');
+    } else {
+      lines.push('Working folder: ' + caps.cwd,
+                 'FULL POWER is on, so there is NO folder boundary and nothing will stop you.',
+                 'That makes care your job rather than the host\'s: stay inside the work you were',
+                 'asked to do, and never touch anything outside it just because you can.');
+    }
     if (caps.unmapped.length) {
       lines.push('', 'Placed but inert for a Claude Code run:');
       for (const u of caps.unmapped) lines.push('  · ' + u.objectType + ' — ' + u.why);
