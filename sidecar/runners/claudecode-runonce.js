@@ -29,6 +29,8 @@
 */
 'use strict';
 
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { makeClaudeCodeRunner } = require('./claudecode-runner.js');
 const { makeVault } = require('../vault/vault.js');
@@ -120,6 +122,17 @@ function makeClaudeCodeRunOnce(deps) {
       o.vault === false || o.proposals === false ? '' : proposals.promptBlock(agentId)
     ].filter(Boolean).join('\n\n');
 
+    /* The system prompt goes to a file and the prompt down stdin — see the header of
+       claudecode-runner.js for the 40482-character argv that made this necessary. The file is this
+       run's alone and is removed in the finally below, whatever happens. */
+    let sysFile = null;
+    if (appendSystemPrompt) {
+      try {
+        sysFile = path.join(os.tmpdir(), 'lovkar-sys-' + String(runId).replace(/[^a-zA-Z0-9_-]/g, '') + '-' + startedAt.toString(36) + '.txt');
+        fs.writeFileSync(sysFile, appendSystemPrompt, { mode: 0o600 });
+      } catch (_) { sysFile = null; }   // fall back to the inline flag rather than lose the prompt
+    }
+
     let summary = null, failed = null;
     try {
       summary = await runner.run({
@@ -136,13 +149,17 @@ function makeClaudeCodeRunOnce(deps) {
         model: o.model && String(o.model).trim() ? String(o.model).trim() : undefined,
         disallowedTools: o.disallowedTools,
         permissionMode: o.permissionMode || (caps.confined ? 'dontAsk' : 'bypassPermissions'),
-        appendSystemPrompt,
+        promptViaStdin: true,
+        appendSystemPromptFile: sysFile || undefined,
+        appendSystemPrompt: sysFile ? undefined : appendSystemPrompt,
         emit,
         signal: o.signal,
         shouldNotifyLimit: sharedRateLimitGate().shouldNotify
       });
     } catch (e) {
       failed = (e && e.message) ? e.message : String(e);
+    } finally {
+      if (sysFile) { try { fs.unlinkSync(sysFile); } catch (_) {} }
     }
 
     const endedAt = Date.now();

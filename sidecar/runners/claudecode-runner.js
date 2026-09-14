@@ -56,11 +56,23 @@
 
      --permission-mode dontAsk + --permission-prompts none is the unattended posture: no
      prompt can be answered, so anything not granted above is denied rather than hanging. */
+  /* THE PROMPT AND THE SYSTEM PROMPT NEVER RIDE ON THE COMMAND LINE.
+
+     Windows CreateProcess caps a command line at 32767 characters. The first version passed both
+     `-p <prompt>` and `--append-system-prompt <text>` as argv, which worked for weeks and then
+     stopped: a real COMMS thread grew to 28 messages with a 10 KB system prompt, the argv reached
+     40482 characters, spawn failed with ENAMETOOLONG, and the station showed `RUN COMPLETE · 0s`
+     with no error anywhere — a silent ceiling that scaled with how much the agent had been used.
+
+     So the prompt goes down STDIN (bare `-p`, the documented pipe form) and the system prompt goes
+     in a file (`--append-system-prompt-file`). Both measured against this build before adopting.
+     Unconditionally, not past some size threshold: a threshold is the same cliff moved. */
   function buildArgs(o) {
-    const a = ['-p', String(o.prompt == null ? '' : o.prompt),
-               '--output-format', 'stream-json',
-               '--verbose',
-               '--include-partial-messages'];
+    const a = ['-p'];
+    if (!o.promptViaStdin) a.push(String(o.prompt == null ? '' : o.prompt));
+    a.push('--output-format', 'stream-json',
+           '--verbose',
+           '--include-partial-messages');
     if (o.model) a.push('--model', String(o.model));
     if (o.resume) a.push('--resume', String(o.resume));
     if (Number.isFinite(o.maxTurns)) a.push('--max-turns', String(o.maxTurns));
@@ -82,7 +94,8 @@
     if (o.strictMcp !== false) a.push('--strict-mcp-config');
     a.push('--permission-mode', String(o.permissionMode || 'dontAsk'));
     a.push('--permission-prompts', 'none');   // unattended: nothing here can answer a prompt
-    if (o.appendSystemPrompt) a.push('--append-system-prompt', String(o.appendSystemPrompt));
+    if (o.appendSystemPromptFile) a.push('--append-system-prompt-file', String(o.appendSystemPromptFile));
+    else if (o.appendSystemPrompt) a.push('--append-system-prompt', String(o.appendSystemPrompt));
     return a;
   }
 
@@ -110,9 +123,17 @@
             cwd: opts.cwd,
             env: opts.env || process.env,
             windowsHide: true,
-            stdio: ['ignore', 'pipe', 'pipe']
+            stdio: [opts.promptViaStdin ? 'pipe' : 'ignore', 'pipe', 'pipe']
           });
         } catch (e) { reject(e); return; }
+
+        if (opts.promptViaStdin) {
+          try {
+            child.stdin.on('error', function () {});   // a child that died early must not crash the host
+            child.stdin.write(String(opts.prompt == null ? '' : opts.prompt));
+            child.stdin.end();
+          } catch (e) { /* the close handler reports the real outcome */ }
+        }
 
         let buf = '';
         let err = '';
