@@ -72,6 +72,14 @@
     for (const d of (o.addDirs || [])) { if (d) a.push('--add-dir', String(d)); }
 
     if (o.mcpConfig) a.push('--mcp-config', String(o.mcpConfig));
+    /* THE HOLE IN THE BOTTOM OF THE MOAT, closed. --tools gates the BUILT-IN tools; MCP servers
+       are configured in ~/.claude.json, which is not a settings file, so --restricted does not
+       exclude them and a headless run INHERITS every server the Commander connected in their own
+       CLI. Measured (lovkar/probe-mcp-leak.js): a run with an empty room reported 65 tools
+       including Gmail send_message, against 5 with this flag. An agent could have mailed from a
+       floor with nothing on it. Connectors must arrive through --mcp-config because a `connector`
+       object was PLACED - never by inheritance. */
+    if (o.strictMcp !== false) a.push('--strict-mcp-config');
     a.push('--permission-mode', String(o.permissionMode || 'dontAsk'));
     a.push('--permission-prompts', 'none');   // unattended: nothing here can answer a prompt
     if (o.appendSystemPrompt) a.push('--append-system-prompt', String(o.appendSystemPrompt));

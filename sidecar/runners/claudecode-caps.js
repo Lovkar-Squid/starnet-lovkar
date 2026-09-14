@@ -70,7 +70,7 @@
     computer:     { tools: [], roots: [], why: 'compute — the model itself, always on' },
     studio:       { tools: [], roots: [], why: 'StarNet-native image/voice tools; a Claude Code run has no equivalent' },
     jukebox:      { tools: [], roots: [], why: 'StarNet-native Spotify tools; reachable only once wired as an MCP server' },
-    connector:    { tools: [], roots: [], why: 'MCP connector; needs --mcp-config, not a built-in tool' }
+    connector:    { tools: [], roots: [], why: 'MCP connector; reaches a run only through --mcp-config, which is not wired yet' }
   };
 
   // The freebie. TodoWrite is upstream's `todo` from the computer/compute family, so it rides

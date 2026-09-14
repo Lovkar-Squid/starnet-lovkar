@@ -128,6 +128,7 @@ function makeClaudeCodeRunOnce(deps) {
         allowedTools: tools,
         // The CLI refuses --restricted together with bypassPermissions, so the two move as one.
         restricted: o.restricted !== false && caps.confined,
+        strictMcp: o.strictMcp !== false,          // never inherit the Commander's own MCP servers
         model: o.model && String(o.model).trim() ? String(o.model).trim() : undefined,
         disallowedTools: o.disallowedTools,
         permissionMode: o.permissionMode || (caps.confined ? 'dontAsk' : 'bypassPermissions'),
