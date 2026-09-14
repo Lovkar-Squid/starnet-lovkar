@@ -23,6 +23,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const { makeClaudeCodeRunner } = require('../runners/claudecode-runner.js');
+const { makeVault } = require('../vault/vault.js');
 
 const MAX_BODY = 1 << 16;
 const MAX_PROMPT = 8000;
@@ -61,6 +62,11 @@ function makeLovkarRun(deps) {
     spawn: deps.spawn,
     claudePath: resolveClaudePath(deps.claudePath)
   });
+
+  /* The agents' markdown memory. Lives beside the code so `cwd` already reaches it — no
+     --add-dir needed — and so `git log` over the repo shows how beliefs changed. */
+  const vault = makeVault({ root: deps.vaultRoot || path.join(defaultCwd, 'vault') });
+  try { vault.init(); } catch (_) {}
 
   const inflight = new Map();   // runId -> AbortController
 
@@ -109,10 +115,15 @@ function makeLovkarRun(deps) {
         prompt,
         cwd: body.cwd || defaultCwd,
         model: body.model,
-        allowedTools: body.allowedTools || ['Read', 'Glob', 'Grep'],
+        // Write/Edit are scoped to the vault by permission-rule pattern: the agent may
+        // record what it learned and may not touch anything else on disk.
+        allowedTools: body.allowedTools || ['Read', 'Glob', 'Grep', 'Write(vault/**)', 'Edit(vault/**)'],
         disallowedTools: body.disallowedTools,
         maxTurns: body.maxTurns,
         permissionMode: body.permissionMode || 'dontAsk',
+        appendSystemPrompt: body.vault === false ? body.appendSystemPrompt : [
+          body.appendSystemPrompt, vault.protocolPrompt('vault/notes', body.vaultIndexLimit)
+        ].filter(Boolean).join('\n\n'),
         emit,
         signal: ac.signal
       });
@@ -131,7 +142,8 @@ function makeLovkarRun(deps) {
           runId,
           sessionId: summary.sessionId, model: summary.model, turns: summary.turns,
           toolCalls: summary.toolCalls, exitCode: summary.exitCode,
-          badLines: summary.badLines, stderr: summary.stderr || undefined
+          badLines: summary.badLines, stderr: summary.stderr || undefined,
+          vaultNotes: (() => { try { return vault.list().length; } catch (_) { return null; } })()
         }
       }) + '\n');
     } catch (_) {}
@@ -145,7 +157,7 @@ function makeLovkarRun(deps) {
     return true;
   }
 
-  return { handle, cancel, inflight };
+  return { handle, cancel, inflight, vault };
 }
 
 module.exports = { makeLovkarRun, resolveClaudePath };

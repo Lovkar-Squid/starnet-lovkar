@@ -201,6 +201,16 @@ dev/.shots-toast/
 .worldshots/
 sidecar/mcp/google-client.json
 
-# LOVKAR fork
+
+# ---- LOVKAR fork ----
 sidecar/index.js.pre-lovkar
 
+# The agents' vault is the USER's memory, not this project's source. It keeps its own git
+# inside vault/ so the history of what the agents believe stays on their machine.
+# Leading slash matters: a bare `vault/` would also swallow sidecar/vault/, which IS source.
+/vault/
+
+# Upstream ignores /CLAUDE.md so every contributor keeps their own. This fork tracks it on
+# purpose: it is the project's working memory, loaded automatically by every run in this
+# folder — including the runs our own runner spawns.
+!/CLAUDE.md
