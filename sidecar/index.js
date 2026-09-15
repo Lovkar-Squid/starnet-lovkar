@@ -15047,7 +15047,7 @@ async function runOnce(o) {
         || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');
       let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }
     let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }
-    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants() }));
+    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));
     }
   }
   const runStartedAt = Date.now();

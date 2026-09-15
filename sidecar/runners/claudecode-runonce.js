@@ -38,12 +38,22 @@ const { makeProposals } = require('../vault/proposals.js');
 const { resolveVaultRoot } = require('../vault/vault-root.js');
 const { resolveClaudeCaps, capsPrompt } = require('./claudecode-caps.js');
 const { resolveClaudeMcp } = require('./claudecode-mcp.js');
+const { resolveLocalMcp } = require('./claudecode-local-mcp.js');
 const { sharedGrants } = require('../routes/lovkar-mcp-grants.js');
 const { sharedRateLimitGate } = require('./ratelimit-gate.js');
 
 const MAX_PROMPT = 60000;
 // The per-run connector bridge, resolved from THIS file so the packaged copy finds its own.
 const BRIDGE = path.join(__dirname, '..', 'mcp', 'lovkar-bridge.js');
+// The Commander's list of local stdio MCP servers. It sits in the workspace dir beside the save
+// (a SIBLING of the agent's fs jail, never inside it) because it names commands that will be
+// executed: the agent must not be able to write its own entry.
+const LOCAL_REGISTRY = 'lovkar-local-mcp.json';
+function readLocalRegistry(dir) {
+  if (!dir) return null;
+  try { return JSON.parse(fs.readFileSync(path.join(dir, LOCAL_REGISTRY), 'utf8')); }
+  catch (_) { return null; }   // absent or unreadable means no local servers, never a crash
+}
 
 function textOf(content) {
   if (typeof content === 'string') return content;
@@ -119,6 +129,18 @@ function makeClaudeCodeRunOnce(deps) {
        grant is minted here and revoked in the finally below: it lives exactly as long as the run.
        Measured gate (lovkar/probe-mcp-stdio.js): --mcp-config decides which servers exist and
        --allowedTools decides which of their tools may be called; --tools does not reach MCP at all. */
+    /* LOCAL stdio servers (Roblox Studio, Blender, windows-mcp). These do NOT go through the
+       connector manager — upstream refuses host stdio there, four layers deep, and that refusal
+       is left exactly as it is. The CLI spawns these itself from the per-run config, and they are
+       gated by the rule in claudecode-local-mcp.js: the Commander listed the agent, the run is at
+       FULL POWER, and the floor already granted it a shell. */
+    const local = resolveLocalMcp({
+      registry: readLocalRegistry(o.workspacesDir),
+      agentId: agentId,
+      tools: tools,
+      fullPower: !!o.fullPower,
+    });
+
     const grants = o.grants || sharedGrants();
     let grantId = null;
     let mcp = { servers: null, allowedTools: [], grant: {}, published: [], summary: 'connectors: none' };
@@ -145,7 +167,7 @@ function makeClaudeCodeRunOnce(deps) {
        a file. It records what the floor granted THIS run: the built-in tools, the folder boundary,
        and the connectors. Appended, capped, and inside the vault (which is gitignored), so it never
        travels with the fork. */
-    const _lovkarLine = '[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary + ' | ' + mcp.summary + (mcp.servers ? ' | bridge: declared' : ' | bridge: none');
+    const _lovkarLine = '[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary + ' | ' + mcp.summary + (mcp.servers ? ' | bridge: declared' : ' | bridge: none') + ' | ' + local.summary;
     try { console.log(_lovkarLine); } catch (_) {}
     try {
       const auditFile = path.join(vaultRoot, '_runs.log');
@@ -166,11 +188,12 @@ function makeClaudeCodeRunOnce(deps) {
        claudecode-runner.js for the 40482-character argv that made this necessary. The file is this
        run's alone and is removed in the finally below, whatever happens. */
     let mcpFile = null;
-    if (mcp.servers) {
+    const allServers = Object.assign({}, mcp.servers || {}, local.servers || {});
+    if (Object.keys(allServers).length) {
       try {
         mcpFile = path.join(os.tmpdir(), 'lovkar-mcp-' + String(runId).replace(/[^a-zA-Z0-9_-]/g, '') + '-' + startedAt.toString(36) + '.json');
-        fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: mcp.servers }), { mode: 0o600 });
-      } catch (_) { mcpFile = null; }   // no config file means no connectors, never a half-open door
+        fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: allServers }), { mode: 0o600 });
+      } catch (_) { mcpFile = null; }   // no config file means no servers at all, never a half-open door
     }
     let sysFile = null;
     if (appendSystemPrompt) {
@@ -191,7 +214,7 @@ function makeClaudeCodeRunOnce(deps) {
         tools,
         // --tools gates the built-ins; the MCP names ride in --allowedTools, which is the only
         // thing that makes a connector tool callable under dontAsk.
-        allowedTools: mcpFile ? tools.concat(mcp.allowedTools) : tools,
+        allowedTools: mcpFile ? tools.concat(mcp.allowedTools, local.allowedTools) : tools,
         mcpConfig: mcpFile || undefined,
         // The CLI refuses --restricted together with bypassPermissions, so the two move as one.
         restricted: o.restricted !== false && caps.confined,
@@ -235,7 +258,8 @@ function makeClaudeCodeRunOnce(deps) {
       error: failed || undefined,
       unmetered: true,
       caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, confined: caps.confined, unmapped: caps.unmapped },
-      connectors: { tools: mcp.allowedTools, summary: mcp.summary }
+      connectors: { tools: mcp.allowedTools, summary: mcp.summary },
+      localMcp: { granted: local.granted, refused: local.refused, summary: local.summary }
     };
   }
 

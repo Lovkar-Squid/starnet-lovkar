@@ -182,6 +182,48 @@ bridge writes `vault/_bridge.log`. Both are inside the gitignored vault. The sid
 the desktop app and its stdout goes nowhere, which is how a bridge that connected, asked and was
 told "zero tools" looked like nothing at all from the outside.
 
+## Local stdio MCP servers — Roblox Studio, Blender, windows-mcp
+
+Done 2026-09-15, and by a different road than the connectors, on purpose.
+
+**Upstream's stdio isolation is untouched.** StarNet refuses to spawn a stdio MCP server unless its
+owning agent runs in a Docker Safe Cell, and it means it four layers deep: `transport.stdio.js`
+`hostStdioAllowed` defaults to deny and only a caller claiming `userControlIsolated: true` opts in,
+a command-basename allowlist, `mcpStdioIsolationError`'s Safe Cell predicate, and a `spawnImpl` that
+docker-execs into the cell. Taking a local server through the connector manager would mean
+dismantling all four AND leaving `userControlIsolated: true` asserted about a child that is not
+isolated. None of that happens. A local server is declared straight into the run's `--mcp-config`
+and the CLI spawns it, which is what that flag is for.
+
+**The rule** (`sidecar/runners/claudecode-local-mcp.js`), agreed with the Commander. A local stdio
+MCP server is arbitrary code execution on this machine, driven by the agent, so it reaches a run
+only when ALL THREE hold:
+
+1. the Commander listed that agent on that server in the registry;
+2. the run is at FULL POWER;
+3. the floor already granted it a `workbench` — that is, Bash.
+
+Under that rule a local server hands the run no new CLASS of authority: whatever it could do
+through the server, it could already do by typing the same command into the shell it was given. An
+agent without a workbench, or at ASK, gets nothing — and for those two the server genuinely WOULD
+be new authority, which is the whole reason the rule reads this way. Every refusal is written out
+with its reason (`vault/_runs.log`), never dropped in silence.
+
+**The registry** is `<workspaces>/lovkar-local-mcp.json` — beside the save, a SIBLING of the agent's
+fs jail and never inside it, because it names commands that get executed and the agent must not be
+able to add its own entry. Entries are validated like input, not trusted like config.
+
+**Why a server name is enough.** The CLI spawns these, so this side never sees their `tools/list`
+and cannot enumerate names for `--allowedTools`. Measured (`lovkar/probe-mcp-wildcard.js`):
+`mcp__<server>` pre-approves every tool that server publishes, `mcp__<server>__*` also works, and
+`mcp__<server>*` does not. The bare server name is the form used here.
+
+Seeded and verified live: **Roblox Studio 28 tools, Blender 26**, alongside the 81 connector tools —
+one run, three sources, one config file. `windows-mcp` is in the registry but parked
+(`"enabled": false`): it drives windows, keyboard and mouse, so arming it is a deliberate act.
+Blender's server needs Blender open with the BlenderMCP addon started, and its `uv` path is pinned
+to the version the desktop app ships.
+
 ## How to run
 
 ```bash
@@ -198,12 +240,14 @@ node lovkar/test-proposals.js             # agents propose, only the Commander p
 node lovkar/audit-floor.js                # what the floor ACTUALLY grants each agent, --json for a machine
 node lovkar/test-save-guard.js            # a locked save is not a missing save
 node lovkar/test-mcp-caps.js              # the floor projected onto connectors, and every refusal
+node lovkar/test-local-mcp.js             # the three conditions a local stdio server must clear
 
 # these spend real subscription turns, so they are not part of the unit suite
 node lovkar/verify-save-lock.js           # the save guard against the real store and a real locked file
 node lovkar/verify-mcp-run.js             # the connector chain end to end, with a stub connector
 node lovkar/verify-live-connectors.js     # the RUNNING station: what the floor grants, and one real call
 node lovkar/probe-mcp-stdio.js            # how the CLI actually gates MCP (see below)
+node lovkar/probe-mcp-wildcard.js         # can a whole server be pre-approved at once (yes: mcp__<name>)
 ```
 
 Needs the Claude Code CLI logged in with a Pro/Max/Team/Enterprise account. No API key, and

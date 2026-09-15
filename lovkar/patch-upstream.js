@@ -117,7 +117,7 @@ const FILES = [
            + "      // floor did not grant -- --tools is applied before permissions are consulted at all.\n"
            + "      const _lovkarFull = FULL_ACCESS || masterBypassOn()\n"
            + "        || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');\n"
-           + "      let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }\n    let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }\n    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants() }));\n"
+           + "      let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }\n    let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }\n    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));\n"
            + "    }\n"
            + "  }"
       },
