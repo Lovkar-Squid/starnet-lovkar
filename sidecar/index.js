@@ -19837,12 +19837,13 @@ function serveSaveLoad(req, res) {
     const u = new URL(req.url, 'http://127.0.0.1');
     const agent = u.searchParams.get('agent') || 'agent';
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(agent)) return json(403, { error: 'forbidden' });
-    const doc = saveStore.load(agent);   // NOTE: this read is what quarantines a corrupt main / recovers .bak — run it BEFORE reading the marker
+    /* LOVKAR:claude-code */ const _lovkarSave = require('./routes/lovkar-save-guard.js').loadGuarded(saveStore, agent, { log: (m) => { try { console.warn('[lovkar/save] ' + m); } catch (_) {} } });
+    const doc = _lovkarSave.doc;   // NOTE: this read is what quarantines a corrupt main / recovers .bak — run it BEFORE reading the marker
     // EL-11 FIX 2/3: surface the persisted quarantine/recovery marker (savestore writeRecoveryMarker) so the boot
     // path can disclose a damaged/restored save instead of silently presenting the pristine first-run ceremony.
     // EL-11 FIX 1 (GB-9): also surface workspaceDegraded at boot-read time, not only on the first refused write.
     const recovery = (typeof saveStore.recoveryNotice === 'function') ? (saveStore.recoveryNotice(agent) || null) : null;
-    json(200, { save: doc || null, recovery: recovery, lineage: publicWorkspaceLineage(), degraded: workspaceDegraded ? true : undefined });
+    /* LOVKAR:claude-code */ json(200, { save: doc || null, recovery: recovery, lineage: publicWorkspaceLineage(), degraded: workspaceDegraded ? true : undefined, busy: _lovkarSave.status === 'busy' ? { code: _lovkarSave.code || null, attempts: _lovkarSave.attempts, waitedMs: _lovkarSave.waitedMs } : undefined });
   } catch (e) { json(200, { save: null, recovery: null, lineage: publicWorkspaceLineage() }); }
 }
 // POST /api/save/recovery-ack { agent? } — the frontend has SHOWN the honest quarantine/recovery notice; clear
