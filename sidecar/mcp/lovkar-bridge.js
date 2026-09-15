@@ -27,6 +27,10 @@ const { URL } = require('url');
 
 const URL_BASE = String(process.env.LOVKAR_MCP_URL || '').trim();
 const GRANT = String(process.env.LOVKAR_MCP_GRANT || '').trim();
+/* Generous by design, and derived from the host's dispatch budget rather than chosen here — see the
+   note on req.setTimeout below. Ten minutes is the floor so a missing env can never re-introduce a
+   cap narrower than a worker's run. */
+const CALL_TIMEOUT_MS = Math.max(600000, Number(process.env.LOVKAR_MCP_CALL_TIMEOUT_MS) || 0);
 const JSONRPC = '2.0';
 const SERVER_INFO = { name: 'lovkar', version: '1.0.0' };
 const PROTOCOL_FALLBACK = '2024-11-05';
@@ -79,7 +83,13 @@ function callSidecar(method, pathname, body) {
       });
     });
     req.on('error', (e) => resolve({ status: 0, json: null, error: (e && e.message) || String(e) }));
-    req.setTimeout(120000, () => { try { req.destroy(new Error('sidecar timeout')); } catch (_) {} });
+    /* A DELEGATED WORKER RUNS FOR MINUTES. The first version capped every call at two minutes,
+       which is the exact mistake orchestration.js warns about in its own comment: team.dispatch
+       awaits whole worker agent-loops and cannot live under a fast-tool cap. The first real
+       dispatch — a research brief — died at 120s with 'sidecar timeout' while the host would have
+       allowed eight minutes. The budget is now the HOST'S, handed down in the environment, so the
+       timeout that fires is the station's own (with its honest message) and never this one. */
+    req.setTimeout(CALL_TIMEOUT_MS, () => { try { req.destroy(new Error('the station did not answer within ' + Math.round(CALL_TIMEOUT_MS / 1000) + 's')); } catch (_) {} });
     if (payload) req.write(payload);
     req.end();
   });

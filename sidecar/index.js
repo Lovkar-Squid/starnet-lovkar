@@ -15047,11 +15047,11 @@ async function runOnce(o) {
         || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');
       let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }
     let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }
-    /* THE STATION'S OWN DELEGATION. team.dispatch and its companions are built far below, inside runOnce, so a claude-code run never met them: the lead could only spawn Claude Code subagents and role-play ANALYST and RESEARCHER, which it said out loud, which is how this was found. Built with the host's OWN factory rather than a parallel one, so a worker still takes its own concurrency slot and budget, the lead's signal still cancels the crew, and lifecycle events still forward onto the lead's bus. providerAuth is the one piece the host does not need here: this lead is keyless, so without it a Gemini worker would be told to run on the lead's wire. */
+    /* THE STATION'S OWN DELEGATION. team.dispatch and its companions are built far below, inside runOnce, so a claude-code run never met them: the lead could only spawn Claude Code subagents and role-play ANALYST and RESEARCHER, which it said out loud, which is how this was found. Built with the host's OWN factory rather than a parallel one, so a worker still takes its own concurrency slot and budget, the lead's signal still cancels the crew, and lifecycle events still forward onto the lead's bus. providerAuth is the one piece the host does not need here: this lead is keyless, so without it a Gemini worker would be told to run on the lead's wire. `subagents` is the durable background worker registry (module scope, built at boot): WITHOUT it team.dispatch background mode, team.spawn, subagents, steer, interrupt and resume all refuse honestly but uselessly — four of the six published tools were dead on arrival because the first verification only exercised a synchronous dispatch. Publishing a tool is claiming it works. */
     let _lovkarCrew = null;
     try {
           _lovkarCrew = makeOrchestrationTools({
-            runOnce, roster: () => agentRoster,
+            runOnce, roster: () => agentRoster, subagents,
             key: '', model: undefined, provider: null, reasoningEffort: 'medium',
             providerAuth: (p) => ({ provider: p, key: cronKeyFor(p), baseUrl: providerRuntimeBaseUrl(p, '') }),
             approvalPosture: () => (_lovkarFull ? 'full' : 'ask'),
@@ -15061,7 +15061,7 @@ async function runOnce(o) {
             newId: () => crypto.randomUUID(), station: stationBridge, now: () => Date.now()
           });
         } catch (e) { try { console.warn('[lovkar] crew tools unavailable: ' + ((e && e.message) || e)); } catch (_) {} }
-        const _lovkarResult = await lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, crewTools: _lovkarCrew, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));
+        const _lovkarResult = await lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, crewTools: _lovkarCrew, dispatchTimeoutMs: ORCH_DISPATCH_TIMEOUT_MS, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));
     /* THE RUN HAS TO EXIST AFTERWARDS. runStore.record() lives at the bottom of runOnce's settle
        path, hundreds of lines below this short-circuit, so every claude-code run used to end
        without ever entering the run history: nothing to rate ("this task is not in the saved run

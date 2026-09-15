@@ -148,12 +148,19 @@ function makeClaudeCodeRunOnce(deps) {
        so delegating to the REAL crew needs nothing new placed. */
     const crew = resolveClaudeCrew({ orchestration: o.crewTools || null, granted: tools.indexOf('Agent') >= 0 });
 
+    /* THE CALL BUDGET IS THE HOST'S, not a second magic number. A dispatch awaits a whole worker
+       agent-loop, so every hop in front of it — our bridge, and the CLI's own MCP tool timeout —
+       has to be wider than the host's dispatch budget, or the wrong timeout fires first and the
+       lead is told the station broke when it was only still working. Margin on top so the host's
+       timeout, with its honest message, is always the one that wins the race. */
+    const callTimeoutMs = Math.max(600000, Number(o.dispatchTimeoutMs) || 0) + 60000;
+
     const grants = o.grants || sharedGrants();
     let grantId = null;
     let mcp = { servers: null, allowedTools: [], grant: {}, published: [], summary: 'connectors: none' };
     const connDefs = Array.isArray(o.connectorDefs) ? o.connectorDefs : [];
     if (o.mcpUrl && (connDefs.length || crew.published.length)) {
-      const shape = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: 'pending', force: true });
+      const shape = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: 'pending', force: true, callTimeoutMs: callTimeoutMs });
       if (shape.published.length || crew.published.length) {
         grantId = grants.mint(runId, {
           agentId: agentId,
@@ -170,7 +177,7 @@ function makeClaudeCodeRunOnce(deps) {
           crewDefs: crew.defs,
         });
         if (grantId) {
-          mcp = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: grantId, force: true, logFile: path.join(vaultRoot, '_bridge.log') });
+          mcp = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: grantId, force: true, callTimeoutMs: callTimeoutMs, logFile: path.join(vaultRoot, '_bridge.log') });
           mcp.allowedTools = (mcp.allowedTools || []).concat(crew.allowedTools);
         }
       }
@@ -238,6 +245,10 @@ function makeClaudeCodeRunOnce(deps) {
         model: o.model && String(o.model).trim() ? String(o.model).trim() : undefined,
         disallowedTools: o.disallowedTools,
         permissionMode: o.permissionMode || (caps.confined ? 'dontAsk' : 'bypassPermissions'),
+        /* The CLI has its own MCP timeouts, and they are the last hop that can cut a dispatch short.
+           Set generously from the same derived budget: an env var this CLI ignores costs nothing,
+           while one it honours and we left unset is exactly the bug above, one layer further out. */
+        extraEnv: mcpFile ? { MCP_TIMEOUT: String(callTimeoutMs), MCP_TOOL_TIMEOUT: String(callTimeoutMs) } : undefined,
         promptViaStdin: true,
         appendSystemPromptFile: sysFile || undefined,
         appendSystemPrompt: sysFile ? undefined : appendSystemPrompt,

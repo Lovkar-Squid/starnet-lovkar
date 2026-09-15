@@ -90,7 +90,10 @@ function resolveClaudeMcp(opts) {
         env: Object.assign({
           LOVKAR_MCP_URL: String(o.url),
           LOVKAR_MCP_GRANT: String(o.grantId),
-        }, o.logFile ? { LOVKAR_MCP_LOG: String(o.logFile) } : {}),
+        },
+        o.logFile ? { LOVKAR_MCP_LOG: String(o.logFile) } : {},
+        // a delegated worker runs for minutes; the bridge must not be the narrowest cap
+        o.callTimeoutMs ? { LOVKAR_MCP_CALL_TIMEOUT_MS: String(o.callTimeoutMs) } : {}),
       },
     }
     : null;

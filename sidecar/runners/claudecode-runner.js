@@ -125,7 +125,9 @@
         try {
           child = spawn(claudePath, buildArgs(opts), {
             cwd: opts.cwd,
-            env: opts.env || process.env,
+            // extraEnv rides on top of the inherited environment (never replacing it): the CLI needs the
+      // real PATH and credentials, plus whatever this run has to widen (see MCP_TOOL_TIMEOUT).
+      env: Object.assign({}, opts.env || process.env, opts.extraEnv || {}),
             windowsHide: true,
             stdio: [opts.promptViaStdin ? 'pipe' : 'ignore', 'pipe', 'pipe']
           });
