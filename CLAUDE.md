@@ -240,11 +240,19 @@ and cannot enumerate names for `--allowedTools`. Measured (`lovkar/probe-mcp-wil
 `mcp__<server>` pre-approves every tool that server publishes, `mcp__<server>__*` also works, and
 `mcp__<server>*` does not. The bare server name is the form used here.
 
-Seeded and verified live: **Roblox Studio 28 tools, Blender 26**, alongside the 81 connector tools —
-one run, three sources, one config file. `windows-mcp` is in the registry but parked
-(`"enabled": false`): it drives windows, keyboard and mouse, so arming it is a deliberate act.
-Blender's server needs Blender open with the BlenderMCP addon started, and its `uv` path is pinned
-to the version the desktop app ships.
+Seeded and verified live: **Roblox Studio 28 tools, Blender 26, windows-mcp 18**, alongside the 81
+connector tools — one run, four sources, one config file. windows-mcp was seeded PARKED
+(`"enabled": false`) because it drives windows, keyboard and mouse; the Commander armed it the same
+day, deliberately, which is the only way it should ever happen. Blender's server needs Blender open
+with the BlenderMCP addon started, and its `uv` path is pinned to the version the desktop app ships.
+
+A note on how that correction arrived: NOVA, asked to list what she could reach, reported
+windows-mcp AND flagged that this file said it was parked — and asked whether it might be leaking
+in from the user's own Claude Code config rather than from the floor. It was not (`--strict-mcp-config`
+is on, and `vault/_runs.log` shows it arriving as `local: … windows-mcp` from the registry), but the
+question was the right one and the document was the thing that was wrong. **Keep this section true
+to the registry**: an agent reading a stale CLAUDE.md is an agent being told the wrong thing about
+its own authority.
 
 ## How to run
 
