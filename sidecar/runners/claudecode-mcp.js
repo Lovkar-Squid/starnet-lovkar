@@ -77,7 +77,10 @@ function resolveClaudeMcp(opts) {
   }
 
   const names = Object.keys(grant);
-  const servers = names.length && o.bridgePath && o.url && o.grantId
+  /* `force` declares the bridge even with no connector tool on it. The crew tools ride the same
+     server (see claudecode-crew.js), so a floor with an orchestrator but no portal still needs the
+     process spawned — without this the run would be granted delegation and handed no way to call it. */
+  const servers = (names.length || o.force) && o.bridgePath && o.url && o.grantId
     ? {
       [SERVER]: {
         command: String(o.nodePath || process.execPath),

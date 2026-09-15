@@ -39,6 +39,7 @@ const { resolveVaultRoot } = require('../vault/vault-root.js');
 const { resolveClaudeCaps, capsPrompt } = require('./claudecode-caps.js');
 const { resolveClaudeMcp } = require('./claudecode-mcp.js');
 const { resolveLocalMcp } = require('./claudecode-local-mcp.js');
+const { resolveClaudeCrew } = require('./claudecode-crew.js');
 const { sharedGrants } = require('../routes/lovkar-mcp-grants.js');
 const { sharedRateLimitGate } = require('./ratelimit-gate.js');
 
@@ -141,22 +142,37 @@ function makeClaudeCodeRunOnce(deps) {
       fullPower: !!o.fullPower,
     });
 
+    /* THE STATION'S OWN CREW. o.crewTools is the host's already-built orchestration tool set, handed
+       in by the caller because it can only be constructed where runOnce's own locals live. The grant
+       is the `orchestrator` object on the floor — the same one that grants the built-in Agent tool —
+       so delegating to the REAL crew needs nothing new placed. */
+    const crew = resolveClaudeCrew({ orchestration: o.crewTools || null, granted: tools.indexOf('Agent') >= 0 });
+
     const grants = o.grants || sharedGrants();
     let grantId = null;
     let mcp = { servers: null, allowedTools: [], grant: {}, published: [], summary: 'connectors: none' };
-    if (o.mcpUrl && Array.isArray(o.connectorDefs) && o.connectorDefs.length) {
-      const shape = resolveClaudeMcp({ defs: o.connectorDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: 'pending' });
-      if (shape.published.length) {
+    const connDefs = Array.isArray(o.connectorDefs) ? o.connectorDefs : [];
+    if (o.mcpUrl && (connDefs.length || crew.published.length)) {
+      const shape = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: 'pending', force: true });
+      if (shape.published.length || crew.published.length) {
         grantId = grants.mint(runId, {
           agentId: agentId,
+          runId: runId,
           fullPower: !!o.fullPower,
           // the CONNECTOR reading of the floor — the route re-derives live defs from exactly this,
           // so the capability list (studio, dish, workbench…) would publish nothing at all
           objects: o.connectorObjects || [],
-          allow: shape.grant,
-          published: shape.published,
+          // connector names are re-checked against the LIVE floor on every call; crew tools are host
+          // objects built for THIS run and cannot be re-derived later, so they ride on the grant and
+          // die with it.
+          allow: Object.assign(Object.create(null), shape.grant, crew.grant),
+          published: shape.published.concat(crew.published),
+          crewDefs: crew.defs,
         });
-        if (grantId) mcp = resolveClaudeMcp({ defs: o.connectorDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: grantId, logFile: path.join(vaultRoot, '_bridge.log') });
+        if (grantId) {
+          mcp = resolveClaudeMcp({ defs: connDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: grantId, force: true, logFile: path.join(vaultRoot, '_bridge.log') });
+          mcp.allowedTools = (mcp.allowedTools || []).concat(crew.allowedTools);
+        }
       }
     }
 
@@ -167,7 +183,7 @@ function makeClaudeCodeRunOnce(deps) {
        a file. It records what the floor granted THIS run: the built-in tools, the folder boundary,
        and the connectors. Appended, capped, and inside the vault (which is gitignored), so it never
        travels with the fork. */
-    const _lovkarLine = '[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary + ' | ' + mcp.summary + (mcp.servers ? ' | bridge: declared' : ' | bridge: none') + ' | ' + local.summary;
+    const _lovkarLine = '[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary + ' | ' + mcp.summary + (mcp.servers ? ' | bridge: declared' : ' | bridge: none') + ' | ' + local.summary + ' | ' + crew.summary;
     try { console.log(_lovkarLine); } catch (_) {}
     try {
       const auditFile = path.join(vaultRoot, '_runs.log');
@@ -259,7 +275,8 @@ function makeClaudeCodeRunOnce(deps) {
       unmetered: true,
       caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, confined: caps.confined, unmapped: caps.unmapped },
       connectors: { tools: mcp.allowedTools, summary: mcp.summary },
-      localMcp: { granted: local.granted, refused: local.refused, summary: local.summary }
+      localMcp: { granted: local.granted, refused: local.refused, summary: local.summary },
+      crew: { tools: crew.allowedTools, summary: crew.summary }
     };
   }
 

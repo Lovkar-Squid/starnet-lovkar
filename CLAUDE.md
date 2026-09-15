@@ -254,6 +254,40 @@ question was the right one and the document was the thing that was wrong. **Keep
 to the registry**: an agent reading a stale CLAUDE.md is an agent being told the wrong thing about
 its own authority.
 
+## The lead delegates to the real crew
+
+Done 2026-09-15. `team.dispatch` and its companions now reach a claude-code run, so the lead hands
+subtasks to ANALYST, RESEARCHER and CHIEF instead of spawning Claude Code subagents and role-playing
+them. (It was role-playing them, and said so when asked what it could reach — that is how the gap
+was found. An agent that reports its own limits honestly is worth more than one that papers over
+them.)
+
+**Nothing about delegation is reimplemented here.** `sidecar/tools/builtin/orchestration.js` already
+does it carefully: each worker is a distinct agentId taking its own concurrency slot and budget
+entry, the lead's signal is threaded into every child so cancelling the lead cancels the crew, only
+the worker's final message returns, and lifecycle events forward onto the lead's bus so the floor
+can animate the handoff. The host builds those tools; `runners/claudecode-crew.js` only decides
+which a run may see and publishes them through the same bridge the connectors use.
+
+**`providerAuth` is the piece the host does not need on its own path.** A claude-code lead is
+KEYLESS, and `workerWire()` falls back to the lead's provider and model whenever the worker's own
+credential cannot be resolved — so without it, a Gemini worker would silently run on the lead's
+wire. The short-circuit passes `providerAuth: (p) => ({ provider: p, key: cronKeyFor(p), baseUrl:
+providerRuntimeBaseUrl(p, '') })`, the same server-side resolver cron and Night Shift use. Verified:
+CHIEF runs headless with no key from the browser.
+
+**`team.summon` is withheld, deliberately.** It adds a crew member, and adding crew is the
+Commander's act — the same line the placement proposals draw. Dispatching work to crew that exists
+is the agent's job; deciding who exists is not. The withholding is a named list in
+`claudecode-crew.js`, asserted by `test-crew.js`, and recorded in every run's audit line so it stays
+visible rather than becoming folklore.
+
+**The grant shape differs from a connector's, and the comment says why.** A connector tool is
+re-checked against the LIVE floor on every call, so a portal picked up mid-run stops working. A crew
+tool cannot be: it is a host object built inside the lead's own runOnce, closing over that run's
+host and signal. It rides on the in-memory grant and dies when the run ends, with the orchestrator
+object at run start as its authority.
+
 ## How to run
 
 ```bash
@@ -270,6 +304,7 @@ node lovkar/test-proposals.js             # agents propose, only the Commander p
 node lovkar/audit-floor.js                # what the floor ACTUALLY grants each agent, --json for a machine
 node lovkar/test-save-guard.js            # a locked save is not a missing save
 node lovkar/test-mcp-caps.js              # the floor projected onto connectors, and every refusal
+node lovkar/test-crew.js                  # which delegation tools a run may see, and the one withheld
 node lovkar/test-local-mcp.js             # the three conditions a local stdio server must clear
 
 # these spend real subscription turns, so they are not part of the unit suite
@@ -277,6 +312,7 @@ node lovkar/verify-save-lock.js           # the save guard against the real stor
 node lovkar/verify-mcp-run.js             # the connector chain end to end, with a stub connector
 node lovkar/verify-live-connectors.js     # the RUNNING station: what the floor grants, and one real call
 node lovkar/verify-run-recorded.js        # a claude-code run lands in the run history and can be rated
+node lovkar/verify-crew-delegation.js     # the lead dispatches to a REAL crew member and gets its answer
 node lovkar/probe-mcp-stdio.js            # how the CLI actually gates MCP (see below)
 node lovkar/probe-mcp-wildcard.js         # can a whole server be pre-approved at once (yes: mcp__<name>)
 ```

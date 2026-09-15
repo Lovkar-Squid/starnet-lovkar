@@ -74,14 +74,25 @@ function makeLovkarMcp(deps) {
     return byName;
   }
 
+  /* The crew tools this run was given. Unlike a connector these cannot be re-derived here: they are
+     host objects built inside the lead's own runOnce, closing over its run host and its signal. They
+     live on the grant, which is in memory and revoked when the run ends. */
+  function crewByPublishedName(grant) {
+    const out = Object.create(null);
+    for (const d of (grant.crewDefs || [])) if (d && d.publishedName && d.tool) out[d.publishedName] = d.tool;
+    return out;
+  }
+
   function handleTools(req, res) {
     const grant = grantOf(req);
     if (!grant) return send(res, 404, { error: 'no live grant' });
     const live = liveDefs(grant);
     // Publish only what the grant named AND the floor still carries. A portal picked up mid-run
     // disappears from the list rather than lingering as a tool that will refuse.
+    const crew = crewByPublishedName(grant);
     const tools = [];
     for (const t of (grant.published || [])) {
+      if (crew[t.name]) { tools.push(t); continue; }   // a crew tool belongs to the run, not to a prop
       const defName = grant.allow[t.name];
       if (defName && live[defName]) tools.push(t);
     }
@@ -99,6 +110,29 @@ function makeLovkarMcp(deps) {
     const name = String(body.name || '');
     const defName = grant.allow[name];
     if (!defName) return send(res, 403, { error: 'the floor did not grant "' + name + '" to this run' });
+
+    /* CREW FIRST. Delegation is granted by the orchestrator object at run start and carried on the
+       grant, so there is no live floor to re-read for it — the grant IS the authority, and it dies
+       with the run. Consent follows the connector rule: an ASK run is refused rather than quietly
+       dispatching work in the Commander's name. */
+    const crewTool = crewByPublishedName(grant)[name];
+    if (crewTool) {
+      if (!grant.fullPower) {
+        return send(res, 403, {
+          error: 'this run is in ASK mode and a Claude Code run has no consent prompt wired yet, so "'
+               + name + '" is refused rather than dispatched without asking. Set the agent to FULL POWER '
+               + 'if you mean it to delegate unattended.',
+        });
+      }
+      try {
+        const out = await crewTool.run(body.arguments || {}, { runId: grant.runId, agentId: grant.agentId, emit: null });
+        const text = (out && typeof out === 'object' && typeof out.content === 'string') ? out.content
+          : (typeof out === 'string' ? out : JSON.stringify(out == null ? {} : out));
+        return send(res, 200, { result: { content: [{ type: 'text', text: String(text) }] } });
+      } catch (e) {
+        return send(res, 200, { error: (e && e.message) ? String(e.message) : String(e) });
+      }
+    }
 
     const live = liveDefs(grant);
     const def = live[defName];
