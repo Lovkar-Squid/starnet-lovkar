@@ -93,6 +93,28 @@ think, and the same argument applies to remembering. It is a divergence, made on
 
 ## Gotchas, all learned the hard way
 
+**THE SHORT-CIRCUIT SKIPS THE SETTLE PATH, NOT JUST THE HOST.** This has now cost three separate
+things, and it will cost a fourth if nobody remembers it. `runOnce` does far more after the model
+loop than run the model: it records the run, writes the durable transcript, retires the run
+journal, sweeps quests. Returning at the top skips ALL of it.
+
+  1. the moat (2026-09-14) — the room's objects decided nothing; fixed by passing `placedObjects`
+  2. connectors (2026-09-15) — the floor's portals reached no run; fixed by the bridge
+  3. the run history (2026-09-15) — `runStore.record()` lives at the bottom of the settle path, so
+     no claude-code run ever entered the run list. The Commander could not rate one ("this task is
+     not in the saved run history"), and progression had nothing to count. Now recorded explicitly
+     in the short-circuit, with the same field shape, verified end to end by
+     `lovkar/verify-run-recorded.js` (including a real POST to the rating route).
+
+  STILL MISSING for the same reason: the durable server-side transcript
+  (`transcriptStore.append`/`appendNew`). COMMS survives restarts because the FRONTEND persists its
+  own save, so this is invisible in the UI — but `/api/transcript` and anything reading it (the MCP
+  bridge's `messages_read`, for one) see nothing from a claude-code run. Adding it needs care: the
+  frontend may then render the same turn twice.
+
+  Before adding anything to the settle path, ask whether the claude-code path needs it too.
+
+
 - **Never `--bare`.** It does not read subscription OAuth credentials at all.
 - **A path-qualified allow rule does not work.** `--allowedTools "Write(vault/**)"` is
   refused in every spelling — relative, absolute, `/`, `\`, the `//` prefix, with and
@@ -246,6 +268,7 @@ node lovkar/test-local-mcp.js             # the three conditions a local stdio s
 node lovkar/verify-save-lock.js           # the save guard against the real store and a real locked file
 node lovkar/verify-mcp-run.js             # the connector chain end to end, with a stub connector
 node lovkar/verify-live-connectors.js     # the RUNNING station: what the floor grants, and one real call
+node lovkar/verify-run-recorded.js        # a claude-code run lands in the run history and can be rated
 node lovkar/probe-mcp-stdio.js            # how the CLI actually gates MCP (see below)
 node lovkar/probe-mcp-wildcard.js         # can a whole server be pre-approved at once (yes: mcp__<name>)
 ```

@@ -15047,7 +15047,30 @@ async function runOnce(o) {
         || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');
       let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }
     let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }
-    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));
+    const _lovkarResult = await lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants(), workspacesDir: WORKSPACES }));
+    /* THE RUN HAS TO EXIST AFTERWARDS. runStore.record() lives at the bottom of runOnce's settle
+       path, hundreds of lines below this short-circuit, so every claude-code run used to end
+       without ever entering the run history: nothing to rate ("this task is not in the saved run
+       history"), nothing in the run list, nothing for progression to count. Same class of mistake
+       as skipping the moat — returning early skipped the settle too. Recorded here with the same
+       field shape; the execution-detail fields belong to the host loop this run never used. */
+    try {
+      const _t = (() => { try { const u = (o.messages || []).filter(m => m && m.role === 'user'); const last = u[u.length - 1]; const s = last && (typeof last.content === 'string' ? last.content : ''); return String(s || '').trim().slice(0, 120); } catch (_) { return ''; } })();
+      runStore.record({
+        runId: String(o.runId || _lovkarResult.runId || ''), parentRunId: o.parentRunId || '',
+        agentId: String(o.agentId || 'agent'), provider: 'claude-code',
+        reason: _lovkarResult.reason || 'done', clarifying: false,
+        turns: _lovkarResult.turns || 0, tokens: _lovkarResult.tokens || 0, usd: _lovkarResult.usd || 0,
+        title: _t, streamId: o.streamId || '', sessionTitle: o.sessionTitle || '',
+        deliveryPrompt: o.sessionPrompt || '', deliveryText: String(_lovkarResult.text || '').slice(0, 4000),
+        recipeId: o.recipeId || '', projectRoot: o.projectRoot || '',
+        model: _lovkarResult.model || 'claude-code', unmetered: true,
+        artifacts: _lovkarResult.artifacts || [], toolsOk: _lovkarResult.toolsOk !== false, toolTrace: [],
+        startedAt: _lovkarResult.startedAt || Date.now(), endedAt: _lovkarResult.endedAt || Date.now(),
+        durationMs: _lovkarResult.durationMs || 0, internal: !!o.internal
+      });
+    } catch (e) { try { console.warn('[lovkar] run record failed: ' + ((e && e.message) || e)); } catch (_) {} }
+    return _lovkarResult;
     }
   }
   const runStartedAt = Date.now();
