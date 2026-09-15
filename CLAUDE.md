@@ -139,6 +139,8 @@ node lovkar/test-vault.js
 node lovkar/test-gate.js
 node lovkar/test-caps.js                  # the moat projection + the vault root
 node lovkar/test-proposals.js             # agents propose, only the Commander places
+
+node lovkar/audit-floor.js                # what the floor ACTUALLY grants each agent, --json for a machine
 ```
 
 Needs the Claude Code CLI logged in with a Pro/Max/Team/Enterprise account. No API key, and
@@ -149,6 +151,12 @@ no `claude setup-token` on a machine where you can log in interactively.
 1. **Connectors.** `connector` objects carry a `connectorId` and map to MCP servers, which
    means generating an `--mcp-config` per run rather than a built-in tool name. The home
    server at `mcp.lovkarsquid.com` is the first target.
+   Measured 2026-09-15, and the reason this is not a one-liner: the OAuth tokens live about an
+   hour (`expiresAt` lands 3,599,836 ms after issue) and the connector manager refreshes them,
+   so a token written into a per-run config dies mid-run. URL-only `--mcp-config` does not reuse
+   the CLI’s own OAuth (1 tool instead of the server’s full set), and inheritance plus a name
+   allow-list puts the whole connector surface in every prompt. The shape that works is a small
+   local stdio MCP proxy that asks the manager per call, so no token leaves the sidecar.
 2. **`--resume`.** Multi-turn history is currently flattened into the prompt; Claude Code
    keeps its own session and could carry context properly. Needs a session id threaded
    through the run record.
