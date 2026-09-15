@@ -63,8 +63,15 @@
     notebook:     { tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit'], roots: ['vault'] },
     cabinet:      { tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'NotebookEdit'], roots: ['workdir'] },
     dish:         { tools: ['WebSearch', 'WebFetch'], roots: [] },
-    workbench:    { tools: ['Bash', 'BashOutput', 'KillShell'], roots: [] },
-    orchestrator: { tools: ['Task'], roots: [] },
+    /* THE NAMES ARE THE CLI'S, AND THEY HAVE MOVED. Measured 2026-09-15 with
+       lovkar/probe-tool-names.js, after the agent itself noticed the run header claiming tools it
+       could not see: this CLI has no BashOutput, KillShell, Task or TodoWrite. The live names are
+       TaskOutput, TaskStop and Agent, and todo is simply gone. A name the CLI does not know is
+       dropped in silence, so the old list still GATED correctly — it only told the audit line a
+       tool was granted when it was not, which is the one thing an audit line may not do.
+       Re-run that probe after a CLI upgrade; drifting names are now a known hazard here. */
+    workbench:    { tools: ['Bash', 'TaskOutput', 'TaskStop'], roots: [] },
+    orchestrator: { tools: ['Agent'], roots: [] },
     // Placed, real, and with no Claude Code equivalent. Named rather than silently dropped so
     // the run can say so instead of leaving the Commander wondering why the prop does nothing.
     computer:     { tools: [], roots: [], why: 'compute — the model itself, always on' },
@@ -73,12 +80,13 @@
     connector:    { tools: [], roots: [], why: 'MCP connector; reaches a run only through --mcp-config, which is not wired yet' }
   };
 
-  // The freebie. TodoWrite is upstream's `todo` from the computer/compute family, so it rides
+  // The freebie. (TodoWrite used to ride along here as upstream's `todo`; this CLI has no such
+  // tool any more, and naming it only made the audit line claim something untrue.) It rides
   // along for free there too; Read/Glob/Grep/Write/Edit are scoped to the vault by `cwd`.
-  const BASE_TOOLS = ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'TodoWrite'];
+  const BASE_TOOLS = ['Read', 'Glob', 'Grep', 'Write', 'Edit'];
 
-  const ORDER = ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'NotebookEdit', 'TodoWrite',
-                 'WebSearch', 'WebFetch', 'Bash', 'BashOutput', 'KillShell', 'Task'];
+  const ORDER = ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'NotebookEdit',
+                 'WebSearch', 'WebFetch', 'Bash', 'TaskOutput', 'TaskStop', 'Agent'];
 
   function norm(p) {
     let s = String(p == null ? '' : p).split('\\').join('/');

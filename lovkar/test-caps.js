@@ -8,7 +8,7 @@
 */
 'use strict';
 const path = require('path');
-const { resolveClaudeCaps, capsPrompt } = require('../sidecar/runners/claudecode-caps.js');
+const { resolveClaudeCaps, capsPrompt, MAP, BASE_TOOLS } = require('../sidecar/runners/claudecode-caps.js');
 const { resolveVaultRoot } = require('../sidecar/vault/vault-root.js');
 
 let pass = 0, fail = 0;
@@ -22,7 +22,7 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
 /* ---- the freebie: an empty room still remembers ---- */
 {
   const c = caps([]);
-  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'TodoWrite'], 'empty room -> vault freebie only');
+  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit'], 'empty room -> vault freebie only');
   eq(c.cwd, VAULT, 'empty room runs INSIDE the vault, so that is all it can touch');
   eq(c.addDirs, [], 'empty room needs no extra root');
   ok(c.tools.indexOf('Bash') < 0, 'empty room has no shell');
@@ -56,13 +56,13 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
 }
 {
   const c = caps([{ objectType: 'orchestrator' }]);
-  ok(c.tools.indexOf('Task') >= 0, 'orchestrator -> Task');
+  ok(c.tools.indexOf('Agent') >= 0, 'orchestrator -> Agent');
 }
 
 /* ---- placed but inert: named, never silently dropped ---- */
 {
   const c = caps([{ objectType: 'studio' }, { objectType: 'jukebox' }]);
-  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'TodoWrite'], 'studio+jukebox grant no Claude Code tool');
+  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit'], 'studio+jukebox grant no Claude Code tool');
   eq(c.unmapped.map(u => u.objectType), ['studio', 'jukebox'], 'and both are reported as inert');
   ok(c.unmapped.every(u => u.why && u.why.length > 10), 'each inert object explains itself');
   ok(/Placed but inert/.test(capsPrompt(c)), 'the prompt tells the agent about them');
@@ -70,13 +70,13 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
 {
   const c = caps([{ objectType: 'teleporter' }]);
   eq(c.unmapped.map(u => u.objectType), ['teleporter'], 'an unknown object is reported, not ignored');
-  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'TodoWrite'], 'and grants nothing');
+  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit'], 'and grants nothing');
 }
 
 /* ---- combinations, dedup, order ---- */
 {
   const c = caps([{ objectType: 'cabinet' }, { objectType: 'dish' }, { objectType: 'workbench' }, { objectType: 'notebook' }]);
-  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'NotebookEdit', 'TodoWrite', 'WebSearch', 'WebFetch', 'Bash', 'BashOutput', 'KillShell'],
+  eq(c.tools, ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'NotebookEdit', 'WebSearch', 'WebFetch', 'Bash', 'TaskOutput', 'TaskStop'],
      'the full office, deduped and in a stable order');
   eq(c.cwd, WORK, 'cabinet decides the root');
 }
@@ -151,9 +151,9 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
   // What must hold HERE is that the object, however it arrives, grants Task and nothing else.
   const withOrch = caps([{ objectType: 'cabinet' }, { objectType: 'orchestrator' }]);
   const without = caps([{ objectType: 'cabinet' }]);
-  ok(withOrch.tools.indexOf('Task') >= 0, 'orchestrator grants Task');
-  ok(without.tools.indexOf('Task') < 0, 'and without it there is no Task by any route');
-  eq(withOrch.tools.filter(t => without.tools.indexOf(t) < 0), ['Task'], 'it grants Task and nothing besides');
+  ok(withOrch.tools.indexOf('Agent') >= 0, 'orchestrator grants Agent');
+  ok(without.tools.indexOf('Agent') < 0, 'and without it there is no delegation by any route');
+  eq(withOrch.tools.filter(t => without.tools.indexOf(t) < 0), ['Agent'], 'it grants delegation and nothing besides');
   eq(withOrch.cwd, without.cwd, 'and it does not widen the folder boundary');
 }
 
@@ -178,6 +178,26 @@ const caps = (objects, workdir) => resolveClaudeCaps({ objects, vaultRoot: VAULT
   ok(/UNCONFINED/.test(on.summary), 'the log line says so plainly');
   ok(/NO folder boundary/.test(capsPrompt(on)), 'and so does the prompt');
   ok(/refused by the host/.test(capsPrompt(off)), 'while a confined run is told the host enforces it');
+}
+
+/* THE NAMES ARE THE CLI'S, AND THEY DRIFT. A tool name the CLI does not know is dropped in
+   silence, so a phantom name still GATES correctly — it just makes the audit line claim a tool the
+   run never had, which is the one thing an audit line may not do. It cost nothing to find only
+   because the agent read its own tool list and said so. These names were measured with
+   lovkar/probe-tool-names.js on 2026-09-15; re-run it after a CLI upgrade. A unit test cannot ask
+   the CLI anything, so what it can do is refuse to let a known-dead name back in by accident. */
+{
+  const DEAD = ['TodoWrite', 'BashOutput', 'KillShell', 'Task'];
+  const all = []
+    .concat(BASE_TOOLS)
+    .concat(Object.keys(MAP).reduce((acc, k) => acc.concat((MAP[k] && MAP[k].tools) || []), []));
+  for (const dead of DEAD) {
+    ok(all.indexOf(dead) < 0, 'no phantom tool name in the map: ' + dead + ' does not exist in this CLI');
+  }
+  const bench = (MAP.workbench && MAP.workbench.tools) || [];
+  ok(bench.indexOf('Bash') >= 0, 'the workbench still grants the shell');
+  ok(bench.indexOf('TaskOutput') >= 0 && bench.indexOf('TaskStop') >= 0, 'with the shell companions under their live names');
+  ok(((MAP.orchestrator && MAP.orchestrator.tools) || []).indexOf('Agent') >= 0, 'and the orchestrator delegates under its live name');
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
