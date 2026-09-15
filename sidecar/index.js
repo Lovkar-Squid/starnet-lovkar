@@ -132,6 +132,9 @@ const { makeEmitter } = require('../shared/emitter.js');
 /* LOVKAR:claude-code */ const { makeLovkarStatus } = require('./routes/lovkar-status.js');
 /* LOVKAR:claude-code */ const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');
 /* LOVKAR:claude-code */ const { makeLovkarProposals } = require('./routes/lovkar-proposals.js');
+/* LOVKAR:claude-code */ const { makeLovkarMcp } = require('./routes/lovkar-mcp.js');
+/* LOVKAR:claude-code */ const { sharedGrants: lovkarGrants } = require('./routes/lovkar-mcp-grants.js');
+/* LOVKAR:claude-code */ const { connectorPlacement: lovkarConnectorPlacement } = require('./capability/lovkar-connector-placement.js');
 const { redact, renderRecall, injectRecall, rank, makeContext, compactionMemoryBlock, compactionSummaryPrompt } = require('./context.js');
 const { makeSummarizer } = require('./compaction-summarizer.js');   // chunked context-compaction fold (Lane A)
 const { runRouteFailure } = require('./runroute.js');   // a failure escaping handleRun must never read as an empty 200
@@ -3746,6 +3749,7 @@ const chanEmit = (name, payload) => { try { return chanEmitValidated(name, redac
 /* LOVKAR:claude-code */ const lovkarStatus = makeLovkarStatus({});
 /* LOVKAR:claude-code */ const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });
 /* LOVKAR:claude-code */ const lovkarProposals = makeLovkarProposals({ cwd: process.cwd() });
+/* LOVKAR:claude-code */ const lovkarMcp = makeLovkarMcp({ grants: lovkarGrants(), connectors: () => connectors });
 
 // H2.2: the SINGLETON background-process manager — persists across runs so a backgrounded dev server survives the
 // run that started it. shell.bg.exit fires AFTER the originating run's NDJSON stream closed, so it rides the
@@ -9102,6 +9106,8 @@ const ROUTES = [
   /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },
   /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/proposals', h: (req, res) => lovkarProposals.handleList(req, res) },
   /* LOVKAR:claude-code */ { m: 'POST', exact: '/api/lovkar/proposals/decide', h: (req, res) => lovkarProposals.handleDecide(req, res) },
+  /* LOVKAR:claude-code */ { m: 'GET', exact: '/api/lovkar/mcp/tools', h: (req, res) => lovkarMcp.handleTools(req, res) },
+  /* LOVKAR:claude-code */ { m: 'POST', exact: '/api/lovkar/mcp/call', h: (req, res) => lovkarMcp.handleCall(req, res) },
   { m: 'POST', exact: '/api/run-recoveries/resolve', h: handleRunRecoveryResolve },
   { m: 'POST', exact: '/api/run-recoveries/continue', h: handleRunRecoveryContinue },
   { m: 'POST', exact: '/api/tts', h: media.handleTts, errorPolicy: media.ttsFailOpenPolicy },
@@ -15039,7 +15045,9 @@ async function runOnce(o) {
       // floor did not grant -- --tools is applied before permissions are consulted at all.
       const _lovkarFull = FULL_ACCESS || masterBypassOn()
         || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');
-      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull }));
+      let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }
+    let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }
+    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants() }));
     }
   }
   const runStartedAt = Date.now();

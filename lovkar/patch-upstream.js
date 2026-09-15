@@ -62,6 +62,9 @@ const FILES = [
            + "\n" + M + " const { makeLovkarStatus } = require('./routes/lovkar-status.js');"
            + "\n" + M + " const { makeClaudeCodeRunOnce } = require('./runners/claudecode-runonce.js');"
            + "\n" + M + " const { makeLovkarProposals } = require('./routes/lovkar-proposals.js');"
+           + "\n" + M + " const { makeLovkarMcp } = require('./routes/lovkar-mcp.js');"
+           + "\n" + M + " const { sharedGrants: lovkarGrants } = require('./routes/lovkar-mcp-grants.js');"
+           + "\n" + M + " const { connectorPlacement: lovkarConnectorPlacement } = require('./capability/lovkar-connector-placement.js');"
       },
       {
         what: 'construct both (chanEmit must already exist)',
@@ -70,6 +73,7 @@ const FILES = [
            + "\n" + M + " const lovkarStatus = makeLovkarStatus({});"
            + "\n" + M + " const lovkarRunOnce = makeClaudeCodeRunOnce({ cwd: process.cwd() });"
            + "\n" + M + " const lovkarProposals = makeLovkarProposals({ cwd: process.cwd() });"
+           + "\n" + M + " const lovkarMcp = makeLovkarMcp({ grants: lovkarGrants(), connectors: () => connectors });"
       },
       {
         what: 'register POST /api/lovkar/run',
@@ -78,6 +82,8 @@ const FILES = [
            + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/status', h: (req, res) => lovkarStatus.handle(req, res) },"
            + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/proposals', h: (req, res) => lovkarProposals.handleList(req, res) },"
            + "\n  " + M + " { m: 'POST', exact: '/api/lovkar/proposals/decide', h: (req, res) => lovkarProposals.handleDecide(req, res) },"
+           + "\n  " + M + " { m: 'GET', exact: '/api/lovkar/mcp/tools', h: (req, res) => lovkarMcp.handleTools(req, res) },"
+           + "\n  " + M + " { m: 'POST', exact: '/api/lovkar/mcp/call', h: (req, res) => lovkarMcp.handleCall(req, res) },"
       },
       {
         /* The important one. It sits at the very top of runOnce, before the concurrency gate
@@ -111,7 +117,7 @@ const FILES = [
            + "      // floor did not grant -- --tools is applied before permissions are consulted at all.\n"
            + "      const _lovkarFull = FULL_ACCESS || masterBypassOn()\n"
            + "        || ((agentRoster.get(String(o.agentId || '')) || {}).approvalMode === 'full');\n"
-           + "      return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull }));\n"
+           + "      let _lovkarPortals = []; try { _lovkarPortals = lovkarConnectorPlacement(saveStore.load('agent'), String(o.agentId || 'agent')) || []; } catch (_) { _lovkarPortals = []; }\n    let _lovkarDefs = []; try { _lovkarDefs = connectors.toolDefsForObjects(_lovkarPortals) || []; } catch (_) { _lovkarDefs = []; }\n    return lovkarRunOnce.runClaudeCodeOnce(Object.assign({}, o, { placedObjects: _lovkarPlaced, fullPower: _lovkarFull, connectorDefs: _lovkarDefs, connectorObjects: _lovkarPortals, mcpUrl: 'http://127.0.0.1:' + PORT, grants: lovkarGrants() }));\n"
            + "    }\n"
            + "  }"
       },
@@ -270,6 +276,23 @@ const FILES = [
         replaceWith: '        "https://github.com/Lovkar-Squid/starnet-lovkar/releases/latest/download/latest.json"'
       }
     ]
+  },
+  {
+    file: 'sidecar/apiauth.js',
+    patches: [
+      {
+        /* The per-run connector bridge authenticates with the RUN'S GRANT, not with the station
+           API token, and that is the point. The bridge is a child of the Claude Code CLI the agent
+           drives; handing it the station token would hand the agent every /api route there is.
+           The grant is narrower than the token in every direction — one run, one floor, one
+           tool list, revoked when the run ends — so these two paths carry their own fence and
+           must not also demand the token they are deliberately not given. Both are loopback-only
+           and refuse outright without a live grant (routes/lovkar-mcp.js). */
+        what: "the connector bridge is gated by its grant, not by the station token",
+        anchor: "const TOKEN_EXEMPT = new Set(['/api/key', '/api/channels/token', '/api/health', '/api/spotify/callback', '/api/connectors/oauth/callback', '/api/channels/events']);",
+        replaceWith: "const TOKEN_EXEMPT = new Set(['/api/key', '/api/channels/token', '/api/health', '/api/spotify/callback', '/api/connectors/oauth/callback', '/api/channels/events', '/api/lovkar/mcp/tools', '/api/lovkar/mcp/call']);"
+      },
+    ],
   },
   {
     file: 'frontend/index.html',

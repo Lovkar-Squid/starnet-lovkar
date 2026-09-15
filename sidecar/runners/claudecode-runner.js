@@ -91,7 +91,11 @@
        including Gmail send_message, against 5 with this flag. An agent could have mailed from a
        floor with nothing on it. Connectors must arrive through --mcp-config because a `connector`
        object was PLACED - never by inheritance. */
-    if (o.strictMcp !== false) a.push('--strict-mcp-config');
+    // The per-run connector bridge. --mcp-config names the ONLY servers that exist for this run
+  // (measured: an undeclared server is unreachable), and --strict-mcp-config keeps the
+  // Commander's own servers out of it.
+  if (o.mcpConfig) a.push('--mcp-config', String(o.mcpConfig));
+  if (o.strictMcp !== false) a.push('--strict-mcp-config');
     a.push('--permission-mode', String(o.permissionMode || 'dontAsk'));
     a.push('--permission-prompts', 'none');   // unattended: nothing here can answer a prompt
     if (o.appendSystemPromptFile) a.push('--append-system-prompt-file', String(o.appendSystemPromptFile));

@@ -37,9 +37,13 @@ const { makeVault } = require('../vault/vault.js');
 const { makeProposals } = require('../vault/proposals.js');
 const { resolveVaultRoot } = require('../vault/vault-root.js');
 const { resolveClaudeCaps, capsPrompt } = require('./claudecode-caps.js');
+const { resolveClaudeMcp } = require('./claudecode-mcp.js');
+const { sharedGrants } = require('../routes/lovkar-mcp-grants.js');
 const { sharedRateLimitGate } = require('./ratelimit-gate.js');
 
 const MAX_PROMPT = 60000;
+// The per-run connector bridge, resolved from THIS file so the packaged copy finds its own.
+const BRIDGE = path.join(__dirname, '..', 'mcp', 'lovkar-bridge.js');
 
 function textOf(content) {
   if (typeof content === 'string') return content;
@@ -109,9 +113,45 @@ function makeClaudeCodeRunOnce(deps) {
     });
     const tools = o.allowedTools ? [].concat(o.allowedTools) : caps.tools;
 
+    /* THE SAME FLOOR, PROJECTED ONTO CONNECTORS. o.connectorDefs is upstream's own per-agent
+       projection (connectors.toolDefsForObjects over this agent's room), handed in by the caller
+       so this fork can never disagree with the station about what a placed portal grants. The
+       grant is minted here and revoked in the finally below: it lives exactly as long as the run.
+       Measured gate (lovkar/probe-mcp-stdio.js): --mcp-config decides which servers exist and
+       --allowedTools decides which of their tools may be called; --tools does not reach MCP at all. */
+    const grants = o.grants || sharedGrants();
+    let grantId = null;
+    let mcp = { servers: null, allowedTools: [], grant: {}, published: [], summary: 'connectors: none' };
+    if (o.mcpUrl && Array.isArray(o.connectorDefs) && o.connectorDefs.length) {
+      const shape = resolveClaudeMcp({ defs: o.connectorDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: 'pending' });
+      if (shape.published.length) {
+        grantId = grants.mint(runId, {
+          agentId: agentId,
+          fullPower: !!o.fullPower,
+          // the CONNECTOR reading of the floor — the route re-derives live defs from exactly this,
+          // so the capability list (studio, dish, workbench…) would publish nothing at all
+          objects: o.connectorObjects || [],
+          allow: shape.grant,
+          published: shape.published,
+        });
+        if (grantId) mcp = resolveClaudeMcp({ defs: o.connectorDefs, bridgePath: BRIDGE, url: o.mcpUrl, grantId: grantId, logFile: path.join(vaultRoot, '_bridge.log') });
+      }
+    }
+
     // Visible, once per run, on the sidecar's own log: a capability decision that happens in
     // silence is one nobody can audit — which is exactly how the last one went unnoticed.
-    try { console.log('[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary); } catch (_) {}
+    /* THE AUDIT LINE. A capability decision nobody can read is one nobody can check, and the
+       sidecar runs as a child of the desktop app whose stdout goes nowhere — so this also lands in
+       a file. It records what the floor granted THIS run: the built-in tools, the folder boundary,
+       and the connectors. Appended, capped, and inside the vault (which is gitignored), so it never
+       travels with the fork. */
+    const _lovkarLine = '[lovkar] ' + agentId + ' ' + runId + ' | ' + caps.summary + ' | ' + mcp.summary + (mcp.servers ? ' | bridge: declared' : ' | bridge: none');
+    try { console.log(_lovkarLine); } catch (_) {}
+    try {
+      const auditFile = path.join(vaultRoot, '_runs.log');
+      try { if (fs.statSync(auditFile).size > 262144) fs.unlinkSync(auditFile); } catch (_) {}
+      fs.appendFileSync(auditFile, new Date(startedAt).toISOString() + ' ' + _lovkarLine + '\n');
+    } catch (_) {}
 
     // The harness's system prompt rides as an append, not a replace: Claude Code's own system
     // prompt is what makes its tools behave, and replacing it would break the thing we came for.
@@ -125,6 +165,13 @@ function makeClaudeCodeRunOnce(deps) {
     /* The system prompt goes to a file and the prompt down stdin — see the header of
        claudecode-runner.js for the 40482-character argv that made this necessary. The file is this
        run's alone and is removed in the finally below, whatever happens. */
+    let mcpFile = null;
+    if (mcp.servers) {
+      try {
+        mcpFile = path.join(os.tmpdir(), 'lovkar-mcp-' + String(runId).replace(/[^a-zA-Z0-9_-]/g, '') + '-' + startedAt.toString(36) + '.json');
+        fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: mcp.servers }), { mode: 0o600 });
+      } catch (_) { mcpFile = null; }   // no config file means no connectors, never a half-open door
+    }
     let sysFile = null;
     if (appendSystemPrompt) {
       try {
@@ -142,7 +189,10 @@ function makeClaudeCodeRunOnce(deps) {
         cwd: caps.cwd,
         addDirs: caps.addDirs,
         tools,
-        allowedTools: tools,
+        // --tools gates the built-ins; the MCP names ride in --allowedTools, which is the only
+        // thing that makes a connector tool callable under dontAsk.
+        allowedTools: mcpFile ? tools.concat(mcp.allowedTools) : tools,
+        mcpConfig: mcpFile || undefined,
         // The CLI refuses --restricted together with bypassPermissions, so the two move as one.
         restricted: o.restricted !== false && caps.confined,
         strictMcp: o.strictMcp !== false,          // never inherit the Commander's own MCP servers
@@ -160,6 +210,8 @@ function makeClaudeCodeRunOnce(deps) {
       failed = (e && e.message) ? e.message : String(e);
     } finally {
       if (sysFile) { try { fs.unlinkSync(sysFile); } catch (_) {} }
+      if (mcpFile) { try { fs.unlinkSync(mcpFile); } catch (_) {} }
+      if (grantId) { try { grants.revoke(grantId); } catch (_) {} }
     }
 
     const endedAt = Date.now();
@@ -182,7 +234,8 @@ function makeClaudeCodeRunOnce(deps) {
       parentRunId: o.parentRunId || '',
       error: failed || undefined,
       unmetered: true,
-      caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, confined: caps.confined, unmapped: caps.unmapped }
+      caps: { placed: caps.placed, tools: caps.tools, cwd: caps.cwd, addDirs: caps.addDirs, confined: caps.confined, unmapped: caps.unmapped },
+      connectors: { tools: mcp.allowedTools, summary: mcp.summary }
     };
   }
 

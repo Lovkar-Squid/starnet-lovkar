@@ -127,6 +127,61 @@ think, and the same argument applies to remembering. It is a divergence, made on
 - **`cargo` lives in `%USERPROFILE%\.cargo\bin`** and is not always on PATH; `tauri build`
   fails with "program not found" for `cargo metadata` when it is missing.
 
+## Connectors reach a run — how, and what gates it
+
+Done 2026-09-15. A placed `connector_portal` now reaches a Claude Code run, and no token ever
+leaves the sidecar. The gate is NOT the one the built-in tools use, which had to be measured
+(`lovkar/probe-mcp-stdio.js`, 7/7):
+
+- **`--tools` does NOT gate MCP tools.** It gates the built-ins and nothing else. Every tool a
+  declared server publishes is visible whatever `--tools` says. Do not build on it here.
+- **`--mcp-config` + `--strict-mcp-config` gate the SERVERS.** An undeclared server does not exist.
+- **`--allowedTools mcp__<server>__<tool>` gates the TOOLS.** Under `--permission-mode dontAsk` an
+  MCP call is refused unless pre-approved by its exact name; a sibling of the same server stays
+  refused.
+
+The shape, and why: the earlier measurement (`probe-mcp-config.js`) showed the CLI will not reuse
+its own OAuth for a server named by URL, and the OAuth tokens live about an hour
+(`expiresAt` lands 3,599,836 ms after issue) and are rotated by the connector manager — so a token
+written into a per-run file dies mid-run. Instead `sidecar/mcp/lovkar-bridge.js` is spawned as a
+local stdio server for that one run and asks the sidecar over loopback; `connectors.call()` does
+the rest, including the 401 → refresh → retry. The per-run config carries a loopback URL and a
+grant id, both worthless after the run.
+
+**Three gates, because the CLI's cooperation is not a security boundary:**
+
+1. the config declares only the servers the floor granted;
+2. `--allowedTools` pre-approves only those tools;
+3. `routes/lovkar-mcp.js` re-checks EVERY call against the run's grant **and the live floor** —
+   pick a portal up mid-run and the next call fails. `verify-mcp-run.js` case 2 proves this by
+   force-listing a forbidden tool in `--allowedTools` and watching the sidecar refuse it anyway.
+
+The grant (`routes/lovkar-mcp-grants.js`) is minted at run start, handed to the bridge in its
+ENVIRONMENT (never argv — a Windows command line is readable by any process), and revoked in the
+runner's `finally`. The two routes are exempt from the station API token on purpose: the bridge is
+a child of the CLI the agent drives, and giving it the station token would give the agent every
+`/api` route there is. The grant is narrower in every direction.
+
+**Consent, stated rather than hidden.** Upstream marks every connector tool `requiresConsent` and
+routes first use through the consent broker. A Claude Code run short-circuits runOnce, which is
+where the broker is built, so there is no prompt to raise. A run whose agent is not at FULL POWER
+is therefore REFUSED at the sidecar with a message saying exactly that, rather than called without
+asking. Wiring the broker into this path is the next real piece of work here.
+
+**`savedPlacement()` is not the connector reading of the floor.** It reduces the floor to bare
+capability types and deliberately drops `connector` and `computer`. Feeding it to
+`toolDefsForObjects` returns nothing, silently. `capability/lovkar-connector-placement.js` is the
+sibling that keeps `{ objectType: 'connector', connectorId }`; upstream's own function is untouched.
+
+**Known hole, not yet closed:** `POST /api/lovkar/run` (this fork's bare dev route) drives the
+runner directly and applies NO floor at all — a run through it gets an unrestricted tool set. It
+needs the station API token, so no agent can reach it, but it should carry the moat too.
+
+**Audit:** every claude-code run appends what the floor granted it to `vault/_runs.log`, and the
+bridge writes `vault/_bridge.log`. Both are inside the gitignored vault. The sidecar is a child of
+the desktop app and its stdout goes nowhere, which is how a bridge that connected, asked and was
+told "zero tools" looked like nothing at all from the outside.
+
 ## How to run
 
 ```bash
@@ -141,6 +196,14 @@ node lovkar/test-caps.js                  # the moat projection + the vault root
 node lovkar/test-proposals.js             # agents propose, only the Commander places
 
 node lovkar/audit-floor.js                # what the floor ACTUALLY grants each agent, --json for a machine
+node lovkar/test-save-guard.js            # a locked save is not a missing save
+node lovkar/test-mcp-caps.js              # the floor projected onto connectors, and every refusal
+
+# these spend real subscription turns, so they are not part of the unit suite
+node lovkar/verify-save-lock.js           # the save guard against the real store and a real locked file
+node lovkar/verify-mcp-run.js             # the connector chain end to end, with a stub connector
+node lovkar/verify-live-connectors.js     # the RUNNING station: what the floor grants, and one real call
+node lovkar/probe-mcp-stdio.js            # how the CLI actually gates MCP (see below)
 ```
 
 Needs the Claude Code CLI logged in with a Pro/Max/Team/Enterprise account. No API key, and
@@ -148,17 +211,8 @@ no `claude setup-token` on a machine where you can log in interactively.
 
 ## Next
 
-1. **Connectors.** `connector` objects carry a `connectorId` and map to MCP servers, which
-   means generating an `--mcp-config` per run rather than a built-in tool name. The home
-   server at `mcp.lovkarsquid.com` is the first target.
-   Measured 2026-09-15, and the reason this is not a one-liner: the OAuth tokens live about an
-   hour (`expiresAt` lands 3,599,836 ms after issue) and the connector manager refreshes them,
-   so a token written into a per-run config dies mid-run. URL-only `--mcp-config` does not reuse
-   the CLI’s own OAuth (1 tool instead of the server’s full set), and inheritance plus a name
-   allow-list puts the whole connector surface in every prompt. The shape that works is a small
-   local stdio MCP proxy that asks the manager per call, so no token leaves the sidecar.
-2. **`--resume`.** Multi-turn history is currently flattened into the prompt; Claude Code
-   keeps its own session and could carry context properly. Needs a session id threaded
-   through the run record.
-3. Alternative station skins — a **hacker den** rather than a space station, in the same
+1. **`--resume`.** Multi-turn history is currently flattened into the prompt; Claude Code keeps
+   its own session and could carry context properly. Needs a session id threaded through the run
+   record.
+2. Alternative station skins — a **hacker den** rather than a space station, in the same
    pixel-art style. Tiles, props and palette are data, not logic: a re-skin, not a rewrite.

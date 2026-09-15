@@ -56,7 +56,7 @@ function pathOf(url) { const u = String(url || ''); const i = u.indexOf('?'); re
      /api/save query token : not exempt; index.js accepts ?token only for POST /api/save because the unload
                              beacon (navigator.sendBeacon) cannot attach a custom header either — the last
                              debounced save must survive a window close (see queryTokenRoute) */
-const TOKEN_EXEMPT = new Set(['/api/key', '/api/channels/token', '/api/health', '/api/spotify/callback', '/api/connectors/oauth/callback', '/api/channels/events']);
+const TOKEN_EXEMPT = new Set(['/api/key', '/api/channels/token', '/api/health', '/api/spotify/callback', '/api/connectors/oauth/callback', '/api/channels/events', '/api/lovkar/mcp/tools', '/api/lovkar/mcp/call']);
 function requiresApiToken(req) {
   if (!req || req.method === 'OPTIONS') return false;
   const p = pathOf(req.url);
