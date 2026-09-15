@@ -38,6 +38,24 @@ const FILES = [
     file: 'sidecar/index.js',
     patches: [
       {
+        /* THE ONBOARDING RECURRENCE. savestore reads the save into a tagged result that knows the
+           difference between ENOENT and "the file is there but locked" (EBUSY/EACCES — another
+           sidecar, a virus scanner, a backup agent). Its back-compat load() collapses both to
+           undefined, and this route then answers { save: null }, which the frontend reads as a
+           first run and greets with the genesis ceremony over an intact station. Measured
+           2026-09-15: the save store reported NO SAVE while agent.save.json sat untouched from
+           05:44:52, and a listing of the workspace returned 16 of its 66 files. Ask again. */
+        what: "a locked save must not read as a missing one",
+        anchor: "    const doc = saveStore.load(agent);   // NOTE: this read is what quarantines a corrupt main / recovers .bak — run it BEFORE reading the marker",
+        replaceWith: "    " + M + " const _lovkarSave = require('./routes/lovkar-save-guard.js').loadGuarded(saveStore, agent, { log: (m) => { try { console.warn('[lovkar/save] ' + m); } catch (_) {} } });"
+                   + "\n    const doc = _lovkarSave.doc;   // NOTE: this read is what quarantines a corrupt main / recovers .bak — run it BEFORE reading the marker"
+      },
+      {
+        what: "say BUSY rather than report an empty station",
+        anchor: "    json(200, { save: doc || null, recovery: recovery, lineage: publicWorkspaceLineage(), degraded: workspaceDegraded ? true : undefined });",
+        replaceWith: "    " + M + " json(200, { save: doc || null, recovery: recovery, lineage: publicWorkspaceLineage(), degraded: workspaceDegraded ? true : undefined, busy: _lovkarSave.status === 'busy' ? { code: _lovkarSave.code || null, attempts: _lovkarSave.attempts, waitedMs: _lovkarSave.waitedMs } : undefined });"
+      },
+      {
         what: 'require the route and the runOnce adapter',
         anchor: "const { makeEmitter } = require('../shared/emitter.js');",
         add: "\n" + M + " const { makeLovkarRun } = require('./routes/lovkar-run.js');"
